@@ -1,0 +1,63 @@
+import api from './api';
+
+export interface Visit {
+  _id: string;
+  enterpriseId: string;
+  inspectorId?: string;
+  scheduledAt: string;
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  type: 'REGULAR' | 'FOLLOW_UP' | 'EMERGENCY';
+  report?: {
+    content: string;
+    files: Array<{
+      name: string;
+      url: string;
+    }>;
+    submittedAt: string;
+    submittedBy: string;
+    outcome: 'COMPLIANT' | 'NON_COMPLIANT' | 'NEEDS_FOLLOW_UP';
+  };
+}
+
+export interface VisitRequest {
+  enterpriseId: string;
+  scheduledAt: Date;
+  type: Visit['type'];
+  comment?: string;
+}
+
+const visitService = {
+  getVisitsByEnterprise: async (enterpriseId: string): Promise<Visit[]> => {
+    const response = await api.get(`/visites/enterprise/${enterpriseId}`);
+    return response.data;
+  },
+
+  requestVisit: async (request: VisitRequest): Promise<Visit> => {
+    const response = await api.post('/visites/request', request);
+    return response.data;
+  },
+
+  cancelVisit: async (visitId: string, reason: string): Promise<Visit> => {
+    const response = await api.put(`/visites/${visitId}/cancel`, { reason });
+    return response.data;
+  },
+
+  downloadVisitReport: async (visitId: string): Promise<Blob> => {
+    const response = await api.get(`/visites/${visitId}/report/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  getUpcomingVisits: async (enterpriseId: string): Promise<Visit[]> => {
+    const response = await api.get(`/visites/enterprise/${enterpriseId}/upcoming`);
+    return response.data;
+  },
+
+  getPastVisits: async (enterpriseId: string): Promise<Visit[]> => {
+    const response = await api.get(`/visites/enterprise/${enterpriseId}/past`);
+    return response.data;
+  }
+};
+
+export default visitService;
