@@ -1,25 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { auth, authorize } = require('../middleware/auth');
-const visitController = require('../controllers/visitController');
-
-// Protéger toutes les routes
-router.use(auth);
+const auth = require('../middleware/auth');
+const {
+    requestVisit,
+    getEnterpriseVisits,
+    cancelVisit,
+    assignInspector,
+    updateVisitStatus,
+    submitVisitReport,
+    downloadReport
+} = require('../controllers/visitController');
 
 // Routes de base
-router.post('/request', visitController.requestVisit);
-router.get('/enterprise/:enterpriseId', visitController.getEnterpriseVisits);
+router.post('/request', auth, requestVisit);
+router.get('/enterprise/:enterpriseId', auth, getEnterpriseVisits);
 
-// Routes avec autorisations spécifiques
-router.put('/:id/cancel', authorize(['admin', 'inspector']), visitController.cancelVisit);
-router.put('/:id/assign-inspector', authorize('admin'), visitController.assignInspector);
-router.put('/:id/status', authorize('inspector'), visitController.updateVisitStatus);
+// Routes pour la gestion des visites
+router.put('/:id/cancel', auth, cancelVisit);
+router.put('/:id/assign-inspector', auth, assignInspector);
+router.put('/:id/status', auth, updateVisitStatus);
 
 // Routes de rapports
-router.post('/:id/report', authorize('inspector'), visitController.submitVisitReport);
-router.get('/:id/report/download', authorize(['admin', 'inspector']), visitController.downloadReport);
-
-// Routes pour les inspecteurs
-router.get('/inspector/my-visits', authorize('inspector'), visitController.getInspectorVisits);
+router.post('/:id/report', auth, submitVisitReport);
+router.get('/:id/report/download', auth, downloadReport);
 
 module.exports = router;

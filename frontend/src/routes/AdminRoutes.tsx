@@ -13,6 +13,8 @@ import AdminAuditTrail from '../pages/Admin/AdminAuditTrail';
 import AdminCompliance from '../pages/Admin/AdminCompliance';
 import AdminKPIs from '../pages/Admin/AdminKPIs';
 import AdminPortfolio from '../pages/Admin/AdminPortfolio';
+import AdminSettings from '../pages/Admin/AdminSettings';
+import AdminOCR from '../pages/Admin/AdminOCR';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -37,9 +39,12 @@ const AdminRoutes: React.FC = () => {
         <Route path="compliance" element={<AdminCompliance />} />
         <Route path="kpis" element={<AdminKPIs />} />
         <Route path="portfolio" element={<AdminPortfolio />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="ocr" element={<AdminOCR />} />
       </Route>
     </Routes>
   );
 };
+
 
 export default AdminRoutes;

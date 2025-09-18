@@ -1,136 +1,161 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
-const path = require('path');
 
-class PDFGenerator {
-  constructor() {
-    this.doc = new PDFDocument();
-  }
-
-  // Méthodes utilitaires communes
-  addHeader(title) {
-    this.doc.fontSize(20).text(title, { align: 'center' });
-    this.doc.moveDown();
-    this.doc.fontSize(12);
-  }
-
-  addGeneralInfo(totalCount, type) {
-    this.doc.text(`Date du rapport: ${new Date().toLocaleDateString()}`);
-    this.doc.text(`Nombre total de ${type}: ${totalCount}`);
-    this.doc.moveDown();
-  }
-
-  addFooter() {
-    this.doc.fontSize(8);
-    this.doc.text('Document confidentiel - Usage interne uniquement', {
-      align: 'center',
-      y: this.doc.page.height - 50
-    });
-  }
-
-  async generateFile(outputPath) {
+async function generatePDF(report, filePath, includeCharts) {
     return new Promise((resolve, reject) => {
-      const writeStream = fs.createWriteStream(outputPath);
-      this.doc.pipe(writeStream);
-      this.doc.end();
+        try {
+            const doc = new PDFDocument();
+            const stream = fs.createWriteStream(filePath);
 
-      writeStream.on('finish', () => resolve(outputPath));
-      writeStream.on('error', reject);
-    });
-  }
+            // Gérer les événements du stream
+            stream.on('finish', resolve);
+            stream.on('error', reject);
 
-  async generateEnterpriseReport(data, outputPath) {
-    try {
-      this.addHeader('Rapport des Entreprises');
-      this.addGeneralInfo(data.length, 'entreprises');
+            // Pipe le document vers le stream
+            doc.pipe(stream);
 
-      // Tableau des entreprises
-      data.forEach((enterprise, index) => {
-        this.doc.text(`${index + 1}. ${enterprise.nom}`);
-        this.doc.fontSize(10);
-        this.doc.text(`Secteur: ${enterprise.secteur}`);
-        this.doc.text(`Statut: ${enterprise.statut}`);
-        this.doc.text(`Investissements: ${enterprise.investissementsRealises} FCFA`);
-        this.doc.text(`Emplois créés: ${enterprise.emploisCrees}`);
-        this.doc.moveDown();
-        this.doc.fontSize(12);
-      });
+            // Ajouter le contenu au PDF
+            doc.fontSize(25)
+               .text('Rapport', { align: 'center' })
+               .moveDown();
 
-      this.addFooter();
-      return this.generateFile(outputPath);
-    } catch (error) {
-      throw new Error(`Erreur lors de la génération du PDF: ${error.message}`);
-    }
-  }
+            // Informations de base
+            doc.fontSize(14)
+               .text(`Type: ${report.type}`)
+               .text(`Date de création: ${new Date(report.createdAt).toLocaleDateString()}`)
+               .text(`Période: ${new Date(report.startDate).toLocaleDateString()} - ${new Date(report.endDate).toLocaleDateString()}`)
+               .moveDown();
 
-  async generateKPIReport(data, outputPath) {
-    try {
-      this.addHeader('Rapport des KPIs');
-      this.addGeneralInfo(data.length, 'KPIs');
+            if (report.visit) {
+                doc.fontSize(16).text('Informations de la visite', { underline: true }).moveDown(0.5);
+                doc.fontSize(12)
+                   .text(`Date prévue: ${new Date(report.visit.scheduledAt).toLocaleString()}`)
+                   .text(`Statut: ${report.visit.status}`)
+                   .text(`Type: ${report.visit.type}`)
+                   .moveDown();
 
-      // Regroupement par catégorie
-      const kpisByCategory = data.reduce((acc, kpi) => {
-        if (!acc[kpi.categorie]) {
-          acc[kpi.categorie] = [];
+                const rep = report.visit.report || {};
+                doc.fontSize(16).text('Rapport', { underline: true }).moveDown(0.5);
+                doc.fontSize(12)
+                   .text(`Conclusion: ${rep.outcome || ''}`)
+                   .text(`Rapporteur: ${rep.reporterName || ''}`)
+                   .moveDown(0.5)
+                   .text('Contenu:')
+                   .moveDown(0.25)
+                   .fontSize(11)
+                   .text(rep.content || '', { align: 'left' })
+                   .moveDown();
+
+                const ent = rep.enterpriseSnapshot || report.visit.enterpriseId || report.enterprise;
+                if (ent) {
+                    // Helpers
+                    const h2 = (title) => doc.fontSize(16).text(title, { underline: true }).moveDown(0.5);
+                    const kv = (label, value) => doc.fontSize(12).text(`${label}: ${value ?? ''}`);
+
+                    // Identification
+                    h2('Entreprise - Identification');
+                    const idt = ent.identification || {};
+                    kv('Nom', idt.nomEntreprise || ent.nom || ent.name || '');
+                    kv('Raison sociale', idt.raisonSociale || '');
+                    kv('Région', idt.region || ent.region || '');
+                    kv('Ville', idt.ville || ent.ville || '');
+                    kv('Date de création', idt.dateCreation ? new Date(idt.dateCreation).toLocaleDateString() : (ent.dateCreation ? new Date(ent.dateCreation).toLocaleDateString() : ''));
+                    kv('Secteur d\'activité', idt.secteurActivite || ent.secteurActivite || '');
+                    kv('Sous-secteur', idt.sousSecteur || '');
+                    kv('Filière de production', idt.filiereProduction || '');
+                    kv('Forme juridique', idt.formeJuridique || '');
+                    kv('Numéro de contribuable', idt.numeroContribuable || '');
+                    doc.moveDown();
+
+                    // Performance économique
+                    h2('Performance économique');
+                    const pe = ent.performanceEconomique || {};
+                    const ca = pe.chiffreAffaires || {};
+                    kv('Chiffre d\'affaires (montant)', ca.montant ?? '');
+                    kv('Chiffre d\'affaires (devise)', ca.devise ?? '');
+                    kv('Chiffre d\'affaires (période)', ca.periode ?? '');
+                    kv('Évolution CA', pe.evolutionCA ?? '');
+                    const cp = pe.coutsProduction || {};
+                    kv('Coûts de production (montant)', cp.montant ?? '');
+                    kv('Coûts de production (devise)', cp.devise ?? '');
+                    kv('Évolution des coûts', pe.evolutionCouts ?? '');
+                    kv('Situation trésorerie', pe.situationTresorerie ?? '');
+                    doc.moveDown();
+
+                    // Investissement & Emploi
+                    h2('Investissement & Emploi');
+                    const ie = ent.investissementEmploi || {};
+                    kv('Effectifs employés', ie.effectifsEmployes ?? '');
+                    kv('Nouveaux emplois créés', ie.nouveauxEmploisCrees ?? '');
+                    kv('Nouveaux investissements réalisés', ie.nouveauxInvestissementsRealises ? 'Oui' : 'Non');
+                    const ti = ie.typesInvestissements || {};
+                    kv('Investissements immobiliers', ti.immobiliers ? 'Oui' : 'Non');
+                    kv('Investissements mobiliers', ti.mobiliers ? 'Oui' : 'Non');
+                    kv('Investissements incorporels', ti.incorporels ? 'Oui' : 'Non');
+                    kv('Investissements financiers', ti.financiers ? 'Oui' : 'Non');
+                    doc.moveDown();
+
+                    // Innovation & Digitalisation
+                    h2('Innovation & Digitalisation');
+                    const id = ent.innovationDigitalisation || {};
+                    kv('Intégration innovation (1-3)', id.integrationInnovation ?? '');
+                    kv('Économie numérique (1-3)', id.integrationEconomieNumerique ?? '');
+                    kv('Utilisation IA (1-3)', id.utilisationIA ?? '');
+                    doc.moveDown();
+
+                    // Conventions
+                    h2('Conventions');
+                    const conv = ent.conventions || {};
+                    const rr = conv.respectDelaisReporting || {};
+                    kv('Respect des délais de reporting', rr.conforme ? 'Oui' : 'Non');
+                    kv('Jours de retard', rr.joursRetard ?? '');
+                    kv('Atteinte cibles investissement (%)', conv.atteinteCiblesInvestissement ?? '');
+                    kv('Atteinte cibles emploi (%)', conv.atteinteCiblesEmploi ?? '');
+                    const cns = conv.conformiteNormesSpecifiques || {};
+                    kv('Conformité normes spécifiques', cns.conforme ? 'Oui' : 'Non');
+                    kv('Niveau de conformité (1-5)', cns.niveauConformite ?? '');
+                    doc.moveDown();
+
+                    // Contact
+                    h2('Contact');
+                    const contact = ent.contact || {};
+                    kv('Email', contact.email ?? '');
+                    kv('Téléphone', contact.telephone ?? '');
+                    const adr = contact.adresse || {};
+                    kv('Adresse - Rue', adr.rue ?? '');
+                    kv('Adresse - Ville', adr.ville ?? '');
+                    kv('Adresse - Code postal', adr.codePostal ?? '');
+                    kv('Adresse - Pays', adr.pays ?? '');
+                    kv('Site Web', contact.siteWeb ?? '');
+                    doc.moveDown();
+
+                    // Statut & description
+                    h2('Statut & description');
+                    kv('Statut', ent.statut ?? '');
+                    kv('Informations complètes', ent.informationsCompletes ? 'Oui' : 'Non');
+                    doc.moveDown(0.25);
+                    doc.fontSize(12).text('Description:').moveDown(0.25);
+                    doc.fontSize(11).text(ent.description || '', { align: 'left' }).moveDown();
+                }
+            }
+
+            // Si on inclut les graphiques
+            if (includeCharts) {
+                doc.fontSize(16)
+                   .text('Graphiques', { underline: true })
+                   .moveDown();
+                // TODO: Ajouter la logique pour les graphiques
+            }
+
+            // Finaliser le document
+            doc.end();
+
+        } catch (error) {
+            reject(error);
         }
-        acc[kpi.categorie].push(kpi);
-        return acc;
-      }, {});
-
-      // Affichage des KPIs par catégorie
-      Object.entries(kpisByCategory).forEach(([category, kpis]) => {
-        this.doc.fontSize(14).text(category);
-        this.doc.moveDown();
-        this.doc.fontSize(10);
-
-        kpis.forEach(kpi => {
-          this.doc.text(`Indicateur: ${kpi.nom}`);
-          this.doc.text(`Valeur actuelle: ${kpi.valeurActuelle}`);
-          this.doc.text(`Valeur cible: ${kpi.valeurCible}`);
-          this.doc.text(`Statut: ${kpi.statut}`);
-          this.doc.moveDown();
-        });
-      });
-
-      this.addFooter();
-      return this.generateFile(outputPath);
-    } catch (error) {
-      throw new Error(`Erreur lors de la génération du PDF: ${error.message}`);
-    }
-  }
-
-  async generatePerformanceReport(data, outputPath) {
-    try {
-      this.addHeader('Rapport de Performance');
-      this.addGeneralInfo(data.length, 'entreprises analysées');
-
-      // Résumé global
-      const totalInvestissements = data.reduce((sum, item) => sum + item.totalInvestissements, 0);
-      const totalEmplois = data.reduce((sum, item) => sum + item.emploisCrees, 0);
-
-      this.doc.text(`Investissements totaux: ${totalInvestissements.toLocaleString()} FCFA`);
-      this.doc.text(`Total emplois créés: ${totalEmplois}`);
-      this.doc.moveDown();
-
-      // Détails par entreprise
-      this.doc.fontSize(14).text('Détails par entreprise');
-      this.doc.moveDown();
-      this.doc.fontSize(10);
-
-      data.forEach(item => {
-        this.doc.text(`Entreprise ID: ${item._id}`);
-        this.doc.text(`Investissements: ${item.totalInvestissements.toLocaleString()} FCFA`);
-        this.doc.text(`Emplois créés: ${item.emploisCrees}`);
-        this.doc.text(`Chiffre d'affaires: ${item.chiffreAffaires.toLocaleString()} FCFA`);
-        this.doc.moveDown();
-      });
-
-      this.addFooter();
-      return this.generateFile(outputPath);
-    } catch (error) {
-      throw new Error(`Erreur lors de la génération du PDF: ${error.message}`);
-    }
-  }
+    });
 }
 
-module.exports = PDFGenerator;
+module.exports = {
+    generatePDF
+};

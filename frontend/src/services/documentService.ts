@@ -1,39 +1,36 @@
 import api from './api';
 
 export interface Document {
-  id: string;
+  id?: string;
+  _id?: string;
   type: string;
   required: boolean;
   dueDate: string;
-  status: 'RECEIVED' | 'WAITING' | 'EXPIRED' | 'UPDATE_REQUIRED';
-  files: Array<{ name: string; url: string }>;
+  status: 'RECEIVED' | 'WAITING' | 'EXPIRED' | 'UPDATE_REQUIRED' | 'VALIDATED';
+  files: Array<{ name: string; url: string; uploadedAt?: string }>;
   uploadedAt?: string;
   validatedBy?: string;
 }
 
-export const getDocuments = async (companyId?: string): Promise<Document[]> => {
-  if (!companyId) return [];
-  const response = await api.get(`/documents/company/${companyId}`);
+export const getDocuments = async (): Promise<Document[]> => {
+  const response = await api.get(`/documents`);
   return response.data;
 };
 
 const documentService = {
-  getCompanyDocuments: async (companyId: string): Promise<Document[]> => {
-    const response = await api.get(`/documents/company/${companyId}`);
-    return response.data;
-  },
+  getDocuments,
 
-  uploadDocument: async (companyId: string, documentType: string, file: File) => {
+  uploadDocument: async (documentType: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', documentType);
 
-    const response = await api.post(`/documents/company/${companyId}/upload`, formData, {
+    const response = await api.post(`/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return response.data as Document;
   },
 
   validateDocument: async (documentId: string, status: Document['status'], comment?: string) => {

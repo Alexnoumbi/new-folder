@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { login as loginService, register as registerService, logout as logoutService } from '../../services/authService';
-import { LoginCredentials, RegisterData, AuthResponse } from '../../types/auth';
+import type { LoginCredentials, RegisterData, AuthResponse } from '../../types/auth.types';
+import type { User } from '../../types/user.types';
 
 interface AuthState {
-  user: AuthResponse['user'] | null;
+  user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
@@ -16,12 +17,11 @@ const initialState: AuthState = {
   error: null
 };
 
-export const login = createAsyncThunk(
+export const login = createAsyncThunk<AuthResponse, LoginCredentials>(
   'auth/login',
-  async (credentials: LoginCredentials, { rejectWithValue }) => {
+  async (credentials, { rejectWithValue }) => {
     try {
-      const response = await loginService(credentials);
-      return response;
+      return await loginService(credentials);
     } catch (error: any) {
       const data = error.response?.data;
       const msg = data?.message || (data?.errors && Array.isArray(data.errors) ? data.errors.map((e: any) => e.msg).join(', ') : null) || 'Erreur de connexion';
@@ -30,12 +30,11 @@ export const login = createAsyncThunk(
   }
 );
 
-export const register = createAsyncThunk(
+export const register = createAsyncThunk<AuthResponse, RegisterData>(
   'auth/register',
-  async (data: RegisterData, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      const response = await registerService(data);
-      return response;
+      return await registerService(data);
     } catch (error: any) {
       const dataErr = error.response?.data;
       const msg = dataErr?.message || (dataErr?.errors && Array.isArray(dataErr.errors) ? dataErr.errors.map((e: any) => e.msg).join(', ') : null) || 'Erreur d\'inscription';
@@ -52,16 +51,11 @@ const authSlice = createSlice({
       logoutService();
       state.user = null;
       state.isAuthenticated = false;
+      state.error = null;
     },
     clearError: (state) => {
       state.error = null;
-    },
-    setUser: (state, action: PayloadAction<AuthResponse['user']>) => {
-      state.user = action.payload;
-      state.isAuthenticated = true;
-      state.loading = false;
-      state.error = null;
-    },
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -69,30 +63,34 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.isAuthenticated = false;
       })
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.error = null;
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.isAuthenticated = false;
       });
   },
 });
 
-export const { logout, clearError, setUser } = authSlice.actions;
+export const { logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

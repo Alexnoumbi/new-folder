@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   CircularProgress,
   Alert,
+  Card,
+  CardContent,
   Button
 } from '@mui/material';
 import { getPortfolioStats } from '../../services/adminService';
-import { PortfolioStats } from '../../types/admin.types';
+import { PortfolioStats } from '../../types/reports.types';
 import { BoxItem } from '../../components/common/BoxItem';
 
 const AdminPortfolio: React.FC = () => {

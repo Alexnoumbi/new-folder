@@ -2,19 +2,17 @@ import React, { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Button,
+  Alert,
   LinearProgress,
   Paper,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Alert
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import documentService from '../../services/documentService';
-import { useAuth } from '../../hooks/useAuth';
 
 interface DocumentUploaderProps {
   onUploadComplete?: () => void;
@@ -31,7 +29,6 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ onUploadComplete })
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState('');
-  const { user } = useAuth();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!documentType) {
@@ -46,19 +43,17 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ onUploadComplete })
     setError(null);
 
     try {
-      if (user?.entrepriseId) {
-        await documentService.uploadDocument(user.entrepriseId, documentType, file);
-        setProgress(100);
-        if (onUploadComplete) {
-          onUploadComplete();
-        }
+      await documentService.uploadDocument(documentType, file);
+      setProgress(100);
+      if (onUploadComplete) {
+        onUploadComplete();
       }
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue lors du téléchargement');
     } finally {
       setUploading(false);
     }
-  }, [documentType, user, onUploadComplete]);
+  }, [documentType, onUploadComplete]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

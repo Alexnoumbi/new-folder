@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
   typeCompte: {
     type: String,
     enum: ['admin', 'entreprise'],
-    required: false // Temporairement optionnel jusqu'à la migration
+    required: false
   },
   role: {
     type: String,
@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
   entrepriseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Entreprise',
-    required: false // Rendu optionnel pour permettre l'inscription d'entreprise
+    required: false
   },
   entrepriseIncomplete: {
     type: Boolean,
@@ -49,72 +49,6 @@ const userSchema = new mongoose.Schema({
   },
   telephone: {
     type: String,
-    trim: true,
-    match: [/^[0-9+\-\s()]+$/, 'Veuillez entrer un numéro de téléphone valide']
-  },
-  adresse: {
-    type: String,
-    trim: true,
-    maxlength: [200, 'L\'adresse ne peut pas dépasser 200 caractères']
-  },
-  dateNaissance: {
-    type: Date
-  },
-  genre: {
-    type: String,
-    enum: ['homme', 'femme', 'autre'],
-    required: false
-  },
-  photo: {
-    type: String,
-    default: null
-  },
-  statut: {
-    type: String,
-    enum: ['actif', 'inactif', 'suspendu'],
-    default: 'actif'
-  },
-  derniereConnexion: {
-    type: Date,
-    default: null
-  },
-  emailVerifie: {
-    type: Boolean,
-    default: false
-  },
-  tokenVerification: {
-    type: String,
-    default: null
-  },
-  tokenResetMotDePasse: {
-    type: String,
-    default: null
-  },
-  dateExpirationReset: {
-    type: Date,
-    default: null
-  },
-  preferences: {
-    theme: {
-      type: String,
-      enum: ['light', 'dark', 'auto'],
-      default: 'light'
-    },
-    langue: {
-      type: String,
-      enum: ['fr', 'en'],
-      default: 'fr'
-    },
-    notifications: {
-      email: {
-        type: Boolean,
-        default: true
-      },
-      push: {
-        type: Boolean,
-        default: true
-      }
-    }
   }
 }, {
   timestamps: true,
@@ -122,36 +56,31 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Index pour améliorer les performances
-// Supprimé l'index explicite sur email pour éviter le doublon avec unique: true
 userSchema.index({ entrepriseId: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ statut: 1 });
 
-// Virtual pour le nom complet
 userSchema.virtual('nomComplet').get(function() {
   return `${this.prenom} ${this.nom}`;
 });
 
-// Middleware pre-save pour hasher le mot de passe
-userSchema.pre('save', async function(next) {
+// Middleware pre-save pour hasher le mot de passe (unique)
+userSchema.pre('save', async function (next) {
   if (!this.isModified('motDePasse')) return next();
-  
   try {
-    const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_ROUNDS) || 12);
-    this.motDePasse = await bcrypt.hash(this.motDePasse, salt);
-    next();
+  const salt = await bcrypt.genSalt(10);
+  this.motDePasse = await bcrypt.hash(this.motDePasse, salt);
+  next();
   } catch (error) {
     next(error);
   }
 });
 
-// Méthode pour comparer les mots de passe
-userSchema.methods.comparerMotDePasse = async function(motDePasseCandidat) {
-  return await bcrypt.compare(motDePasseCandidat, this.motDePasse);
+// Méthode pour comparer les mots de passe (unique)
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.motDePasse);
 };
 
-// Méthode pour obtenir les informations publiques de l'utilisateur
+// Méthode pour obtenir le profil public
 userSchema.methods.getPublicProfile = function() {
   const userObject = this.toObject();
   delete userObject.motDePasse;
@@ -171,4 +100,4 @@ userSchema.methods.isAdmin = function() {
   return this.role === 'admin' || this.role === 'super_admin';
 };
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

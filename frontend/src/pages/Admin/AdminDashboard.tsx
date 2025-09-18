@@ -3,7 +3,8 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Alert
+  Alert,
+  Container
 } from '@mui/material';
 import {
   TrendingUp,
@@ -15,70 +16,79 @@ import {
   Timeline,
   BarChart
 } from '@mui/icons-material';
-import { getAdminStats, AdminStats } from '../../services/adminService';
+import { getDashboardStats } from '../../services/dashboardService';
+import { AdminStats } from '../../types/admin.types';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonChart from '../../components/Argon/ArgonChart';
 import ArgonTimeline from '../../components/Argon/ArgonTimeline';
+import { getEntreprisesEvolution, EntrepriseEvolutionPoint } from '../../services/dashboardService';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [evolution, setEvolution] = useState<EntrepriseEvolutionPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    let mounted = true;
+
+    const fetchAll = async () => {
       try {
         setLoading(true);
-        const data = await getAdminStats();
-        setStats(data);
+        setError(null);
+        const now = new Date();
+        const startParam = `${now.getFullYear()}-05`; // depuis mai de l'année courante
+        const [statsData, evoData] = await Promise.all([
+          getDashboardStats(),
+          getEntreprisesEvolution(startParam)
+        ]);
+        if (mounted) {
+          setStats(statsData);
+          setEvolution(evoData);
+        }
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Erreur lors du chargement des statistiques');
+        if (mounted) {
+          setError(err.response?.data?.message || 'Erreur lors du chargement des statistiques');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchAll();
+    return () => { mounted = false; };
   }, []);
 
-  if (error) {
+  if (loading) {
     return (
-      <Box>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Tableau de bord Administration
-        </Typography>
-        <Alert severity="error">{error}</Alert>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="500px">
+        <CircularProgress />
       </Box>
     );
   }
 
-  // Données de démonstration pour la timeline
-  const timelineData = [
-    {
-      id: '1',
-      title: 'Nouvelle entreprise enregistrée',
-      description: 'ABC Corporation a été ajoutée au système',
-      timestamp: new Date().toISOString(),
-      type: 'success' as const,
-      user: 'Admin'
-    },
-    {
-      id: '2',
-      title: 'KPI validé',
-      description: 'Les indicateurs de performance ont été approuvés',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      type: 'info' as const,
-      user: 'Superviseur'
-    },
-    {
-      id: '3',
-      title: 'Alerte système',
-      description: 'Problème de connexion détecté',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      type: 'warning' as const,
-      user: 'Système'
-    }
-  ];
+  if (error) {
+    return (
+      <Container>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          Tableau de bord Administration
+        </Typography>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  const timelineData = stats?.dernieresActivites?.map(activity => ({
+    id: activity._id,
+    title: activity.action,
+    description: activity.description,
+    timestamp: activity.timestamp,
+    type: getActivityType(activity.action),
+    user: activity.user?.nom || 'Système'
+  })) || [];
 
   return (
     <Box>
@@ -86,7 +96,6 @@ const AdminDashboard: React.FC = () => {
         Tableau de bord Administration
       </Typography>
       
-      {/* Cartes de statistiques avec style Argon */}
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
@@ -128,9 +137,8 @@ const AdminDashboard: React.FC = () => {
         />
       </Box>
 
-      {/* Graphiques et timeline */}
       <Box sx={{ 
-        display: 'grid', 
+        display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, 
         gap: 3 
       }}>
@@ -144,24 +152,22 @@ const AdminDashboard: React.FC = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                borderRadius: 2,
-                border: '2px dashed #e0e0e0',
-              }}
-            >
-              <Typography color="textSecondary" variant="h6">
-                Graphique des tendances
-              </Typography>
-              <Typography color="textSecondary" variant="body2" sx={{ ml: 1 }}>
-                ({stats?.evolutionEntreprises?.length || 0} points de données)
-              </Typography>
-            </Box>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={evolution} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#667eea" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#764ba2" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eaeaea" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ borderRadius: 12, borderColor: '#eee' }} cursor={{ stroke: '#aaa', strokeDasharray: '3 3' }} />
+                <Legend />
+                <Area type="monotone" dataKey="count" name="Nouvelles entreprises" stroke="#6a7fd2" strokeWidth={3} fill="url(#colorCount)" />
+              </AreaChart>
+            </ResponsiveContainer>
           )}
         </ArgonChart>
         
@@ -170,14 +176,27 @@ const AdminDashboard: React.FC = () => {
           icon={<Timeline />}
           height={400}
         >
-          <ArgonTimeline 
-            items={timelineData}
-          />
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ArgonTimeline items={timelineData} />
+          )}
         </ArgonChart>
       </Box>
     </Box>
   );
 };
 
-export default AdminDashboard;
+// Fonction utilitaire pour déterminer le type d'activité
+const getActivityType = (action: string): 'success' | 'warning' | 'info' | 'error' => {
+  const a = action.toLowerCase();
+  if (a.includes('create') || a.includes('add') || a.includes('new') || a.includes('valid')) return 'success';
+  if (a.includes('update') || a.includes('edit') || a.includes('modif') || a.includes('updat')) return 'info';
+  if (a.includes('delete') || a.includes('remove') || a.includes('suppr') || a.includes('delet')) return 'error';
+  if (a.includes('alert') || a.includes('error') || a.includes('warn')) return 'warning';
+  return 'info';
+};
 
+export default AdminDashboard;

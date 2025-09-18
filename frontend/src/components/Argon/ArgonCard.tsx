@@ -11,40 +11,51 @@ interface ArgonCardProps {
   change?: string;
   loading?: boolean;
   gradient?: boolean;
-  children?: React.ReactNode; // Ajouter cette ligne
+  children?: React.ReactNode;
 }
 
-const StyledCard = styled(Card)<{ gradient?: boolean }>(({ theme, gradient }) => ({
+// Use transient props for styled-components
+interface StyledCardProps {
+  $gradient?: boolean;
+}
+
+interface IconContainerProps {
+  $color?: 'primary' | 'success' | 'warning' | 'error' | 'info';
+  $gradient?: boolean;
+}
+
+// Don't forward transient props to the DOM
+const StyledCard = styled(Card, { shouldForwardProp: (prop) => prop !== '$gradient' })<StyledCardProps>(({ theme, $gradient }) => ({
   height: '100%',
   borderRadius: 16,
-  boxShadow: gradient 
-    ? '0 4px 20px rgba(0, 0, 0, 0.1)' 
+  boxShadow: $gradient
+    ? '0 4px 20px rgba(0, 0, 0, 0.1)'
     : '0 2px 10px rgba(0, 0, 0, 0.08)',
   border: '1px solid rgba(255, 255, 255, 0.2)',
-  background: gradient 
+  background: $gradient
     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     : '#ffffff',
-  color: gradient ? '#ffffff' : 'inherit',
+  color: $gradient ? '#ffffff' : 'inherit',
   transition: 'all 0.3s ease',
   '&:hover': {
     transform: 'translateY(-4px)',
-    boxShadow: gradient 
-      ? '0 8px 30px rgba(0, 0, 0, 0.15)' 
+    boxShadow: $gradient
+      ? '0 8px 30px rgba(0, 0, 0, 0.15)'
       : '0 4px 20px rgba(0, 0, 0, 0.12)',
   },
 }));
 
-const IconContainer = styled(Box)<{ color: string; gradient?: boolean }>(({ theme, color, gradient }) => ({
+const IconContainer = styled(Box, { shouldForwardProp: (prop) => prop !== '$color' && prop !== '$gradient' })<IconContainerProps>(({ theme, $color = 'primary', $gradient }) => ({
   width: 64,
   height: 64,
   borderRadius: 16,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: gradient 
+  background: $gradient
     ? 'rgba(255, 255, 255, 0.2)'
-    : `${color}.light`,
-  color: gradient ? '#ffffff' : `${color}.main`,
+    : theme.palette[$color].light,
+  color: $gradient ? '#ffffff' : theme.palette[$color].main,
   fontSize: '1.5rem',
   transition: 'all 0.3s ease',
   '&:hover': {
@@ -61,9 +72,9 @@ const ArgonCard: React.FC<ArgonCardProps> = ({
   change,
   loading = false,
   gradient = false,
-  children // Ajouter children
+  children
 }) => (
-  <StyledCard gradient={gradient}>
+  <StyledCard $gradient={gradient}>
     <CardContent sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ flex: 1 }}>
@@ -106,18 +117,18 @@ const ArgonCard: React.FC<ArgonCardProps> = ({
             <Chip
               label={change}
               size="small"
-              sx={{
+              sx={(theme) => ({
                 mt: 1,
-                backgroundColor: gradient ? 'rgba(255, 255, 255, 0.2)' : `${color}.light`,
-                color: gradient ? '#ffffff' : `${color}.main`,
+                backgroundColor: gradient ? 'rgba(255, 255, 255, 0.2)' : theme.palette[color].light,
+                color: gradient ? '#ffffff' : theme.palette[color].main,
                 fontWeight: 600,
                 fontSize: '0.75rem'
-              }}
+              })}
             />
           )}
         </Box>
         {icon && (
-          <IconContainer color={color} gradient={gradient}>
+          <IconContainer $color={color} $gradient={gradient}>
             {icon}
           </IconContainer>
         )}
@@ -127,4 +138,4 @@ const ArgonCard: React.FC<ArgonCardProps> = ({
   </StyledCard>
 );
 
-export default ArgonCard; 
+export default ArgonCard;

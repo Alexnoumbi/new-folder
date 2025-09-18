@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, AppBar, Toolbar, Typography, IconButton, useMediaQuery, useTheme, Badge } from '@mui/material';
 import {
     Dashboard as DashboardIcon,
     Business as BusinessIcon,
-    Assessment as KPIIcon,
+    Assignment as AssignmentIcon,
     Description as DocumentIcon,
     People as PeopleIcon,
     History as HistoryIcon,
+    Message as MessageIcon,
+    Assessment as AssessmentIcon,
+    AccountCircle as AccountCircleIcon,
     Menu as MenuIcon,
     Notifications,
-    AccountCircle,
-    Logout
+    Logout,
+    DocumentScanner as ScannerIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import ArgonSidebar from '../components/Argon/ArgonSidebar';
+import { useAuth } from '../hooks/useAuth';
+import { getEntreprise } from '../services/entrepriseService';
 
 const drawerWidth = 280;
 
@@ -90,14 +95,85 @@ const EnterpriseLayout = ({ children }: { children: React.ReactNode }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { user } = useAuth();
+    const [enterpriseName, setEnterpriseName] = useState<string>('');
+
+    useEffect(() => {
+        const loadEnterpriseName = async () => {
+            try {
+                if (user?.entrepriseId) {
+                    const ent = await getEntreprise(user.entrepriseId);
+                    const name = (ent as any)?.identification?.nomEntreprise || ent?.nom || ent?.name || '';
+                    setEnterpriseName(name);
+                }
+            } catch {
+                setEnterpriseName('');
+            }
+        };
+        loadEnterpriseName();
+    }, [user]);
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon />, path: '/enterprise/dashboard' },
-        { id: 'mon-entreprise', label: 'Mon Entreprise', icon: <BusinessIcon />, path: '/enterprise/mon-entreprise' },
-        { id: 'kpis', label: 'KPIs', icon: <KPIIcon />, path: '/enterprise/kpis' },
-        { id: 'documents', label: 'Documents', icon: <DocumentIcon />, path: '/enterprise/documents' },
-        { id: 'users', label: 'Utilisateurs', icon: <PeopleIcon />, path: '/enterprise/users' },
-        { id: 'history', label: 'Historique', icon: <HistoryIcon />, path: '/enterprise/history' },
+        {
+            id: 'dashboard',
+            label: 'Dashboard',
+            icon: <DashboardIcon />,
+            path: '/enterprise'
+        },
+        {
+            id: 'overview',
+            label: 'Aperçu',
+            icon: <BusinessIcon />,
+            path: '/enterprise/overview'
+        },
+        {
+            id: 'controls',
+            label: 'Contrôles',
+            icon: <AssignmentIcon />,
+            path: '/enterprise/controls'
+        },
+        {
+            id: 'documents',
+            label: 'Documents',
+            icon: <DocumentIcon />,
+            path: '/enterprise/documents'
+        },
+        {
+            id: 'affiliations',
+            label: 'Affiliations',
+            icon: <PeopleIcon />,
+            path: '/enterprise/affiliations'
+        },
+        {
+            id: 'kpi-history',
+            label: 'Historique KPI',
+            icon: <HistoryIcon />,
+            path: '/enterprise/kpi-history'
+        },
+        {
+            id: 'messages',
+            label: 'Messages',
+            icon: <MessageIcon />,
+            path: '/enterprise/messages'
+        },
+        {
+            id: 'reports',
+            label: 'Rapports',
+            icon: <AssessmentIcon />,
+            path: '/enterprise/reports'
+        },
+        {
+            id: 'ocr',
+            label: 'Scanner OCR',
+            icon: <ScannerIcon />,
+            path: '/enterprise/ocr'
+        },
+        {
+            id: 'profile',
+            label: 'Profil',
+            icon: <AccountCircleIcon />,
+            path: '/enterprise/profile'
+        },
     ];
 
     const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -106,6 +182,9 @@ const EnterpriseLayout = ({ children }: { children: React.ReactNode }) => {
         console.log('Déconnexion entreprise');
         navigate('/login');
     };
+
+    const displayName = user ? `${user.prenom || ''} ${user.nom || ''}`.trim() || user.email : 'Utilisateur';
+    const displayEnterprise = enterpriseName || 'Entreprise';
 
     return (
         <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -139,10 +218,10 @@ const EnterpriseLayout = ({ children }: { children: React.ReactNode }) => {
                             </Box>
                             <Box>
                                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#262626' }}>
-                                    Portail Entreprise
+                                    {displayEnterprise}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: '#64748B', display: 'block', lineHeight: 1 }}>
-                                    Business Dashboard
+                                    {displayName}
                                 </Typography>
                             </Box>
                         </LogoContainer>
@@ -155,7 +234,7 @@ const EnterpriseLayout = ({ children }: { children: React.ReactNode }) => {
                             </Badge>
                         </StyledIconButton>
                         <StyledIconButton>
-                            <AccountCircle />
+                            <AccountCircleIcon />
                         </StyledIconButton>
                         <StyledIconButton onClick={handleLogout}>
                             <Logout />
@@ -170,8 +249,8 @@ const EnterpriseLayout = ({ children }: { children: React.ReactNode }) => {
                 onClose={() => setMobileOpen(false)}
                 menuItems={menuItems}
                 user={{
-                    name: 'Entreprise User',
-                    role: 'Gestionnaire',
+                    name: displayName,
+                    role: displayEnterprise,
                     avatar: undefined
                 }}
             />

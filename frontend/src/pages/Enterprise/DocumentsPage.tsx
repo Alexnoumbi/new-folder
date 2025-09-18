@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Typography,
-  CircularProgress,
-  Alert,
   Button,
-  Chip,
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
 } from '@mui/material';
 import {
   Description,
-  Upload,
   Download,
   Visibility,
   Edit,
@@ -24,18 +19,18 @@ import {
   Refresh,
   Add
 } from '@mui/icons-material';
-import { getDocuments, Document } from '../../services/documentService';
+import { getDocuments } from '../../services/documentService';
+import type { Document as DocumentType } from '../../services/documentService';
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonDataTable from '../../components/Argon/ArgonDataTable';
-import ArgonForm from '../../components/Argon/ArgonForm';
+import DocumentUploader from '../../components/EntrepriseDashboard/DocumentUploader';
 
 const DocumentsPage: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -60,10 +55,9 @@ const DocumentsPage: React.FC = () => {
 
   const headerActions = [
     {
-      label: 'Nouveau Document',
+      label: 'Importer un document',
       icon: <Add />,
       onClick: () => {
-        setEditingDocument(null);
         setOpenDialog(true);
       },
       variant: 'contained' as const,
@@ -79,35 +73,20 @@ const DocumentsPage: React.FC = () => {
   ];
 
   const columns = [
-    { id: 'name', label: 'Nom du document', minWidth: 200, sortable: true },
-    { id: 'type', label: 'Type', minWidth: 120, sortable: true, filterable: true },
+    { id: 'type', label: 'Type', minWidth: 160, sortable: true, filterable: true },
     { id: 'status', label: 'Statut', minWidth: 120, sortable: true, filterable: true },
     { id: 'uploadedAt', label: 'Date d\'upload', minWidth: 150, sortable: true },
-    { id: 'fileSize', label: 'Taille', minWidth: 100 },
-    { id: 'version', label: 'Version', minWidth: 80 },
-  ];
-
-  const formFields = [
-    { name: 'name', label: 'Nom du document', required: true, xs: 12, md: 6 },
-    { name: 'type', label: 'Type de document', type: 'select' as const, required: true, xs: 12, md: 6, options: [
-      { value: 'contract', label: 'Contrat' },
-      { value: 'invoice', label: 'Facture' },
-      { value: 'report', label: 'Rapport' },
-      { value: 'certificate', label: 'Certificat' },
-      { value: 'other', label: 'Autre' }
-    ]},
-    { name: 'description', label: 'Description', type: 'textarea' as const, xs: 12 },
   ];
 
   const filters = {
     type: {
       type: 'select' as const,
       options: [
-        { value: 'contract', label: 'Contrat' },
-        { value: 'invoice', label: 'Facture' },
-        { value: 'report', label: 'Rapport' },
-        { value: 'certificate', label: 'Certificat' },
-        { value: 'other', label: 'Autre' }
+        { value: 'BUSINESS_PLAN', label: 'Business Plan' },
+        { value: 'FINANCIAL_STATEMENT', label: 'État Financier' },
+        { value: 'TAX_CERTIFICATE', label: 'Attestation Fiscale' },
+        { value: 'SOCIAL_SECURITY', label: 'Sécurité Sociale' },
+        { value: 'TRADE_REGISTER', label: 'Registre du Commerce' }
       ]
     },
     status: {
@@ -116,7 +95,8 @@ const DocumentsPage: React.FC = () => {
         { value: 'RECEIVED', label: 'Reçu' },
         { value: 'WAITING', label: 'En attente' },
         { value: 'EXPIRED', label: 'Expiré' },
-        { value: 'UPDATE_REQUIRED', label: 'Mise à jour requise' }
+        { value: 'UPDATE_REQUIRED', label: 'Mise à jour requise' },
+        { value: 'VALIDATED', label: 'Validé' }
       ]
     }
   };
@@ -124,7 +104,6 @@ const DocumentsPage: React.FC = () => {
   const tableData = documents.map(doc => ({
     ...doc,
     uploadedAt: doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString('fr-FR') : 'N/A',
-    fileSize: 'N/A',
   }));
 
   const actions = (row: any) => (
@@ -132,7 +111,7 @@ const DocumentsPage: React.FC = () => {
       <Button
         size="small"
         startIcon={<Visibility />}
-        onClick={() => console.log('Voir document:', row.id)}
+        onClick={() => console.log('Voir document:', row._id || row.id)}
         sx={{ color: 'primary.main' }}
       >
         Voir
@@ -140,29 +119,10 @@ const DocumentsPage: React.FC = () => {
       <Button
         size="small"
         startIcon={<Download />}
-        onClick={() => console.log('Télécharger:', row.id)}
+        onClick={() => console.log('Télécharger:', row._id || row.id)}
         sx={{ color: 'success.main' }}
       >
         Télécharger
-      </Button>
-      <Button
-        size="small"
-        startIcon={<Edit />}
-        onClick={() => {
-          setEditingDocument(row);
-          setOpenDialog(true);
-        }}
-        sx={{ color: 'warning.main' }}
-      >
-        Modifier
-      </Button>
-      <Button
-        size="small"
-        startIcon={<Delete />}
-        onClick={() => console.log('Supprimer:', row.id)}
-        sx={{ color: 'error.main' }}
-      >
-        Supprimer
       </Button>
     </Box>
   );
@@ -174,28 +134,28 @@ const DocumentsPage: React.FC = () => {
       value: documents.length,
       icon: <Description />,
       color: 'primary' as const,
-      change: '+3'
+      change: ''
     },
     {
       title: 'Reçus',
       value: documents.filter(d => d.status === 'RECEIVED').length,
       icon: <CheckCircle />,
       color: 'success' as const,
-      change: '+2'
+      change: ''
     },
     {
       title: 'En Attente',
       value: documents.filter(d => d.status === 'WAITING').length,
       icon: <Warning />,
       color: 'warning' as const,
-      change: '+1'
+      change: ''
     },
     {
       title: 'Expirés',
       value: documents.filter(d => d.status === 'EXPIRED').length,
       icon: <Error />,
       color: 'error' as const,
-      change: '0'
+      change: ''
     }
   ];
 
@@ -251,7 +211,6 @@ const DocumentsPage: React.FC = () => {
         data={tableData}
         loading={loading}
         searchable={true}
-        filterable={true}
         sortable={true}
         pagination={true}
         actions={actions}
@@ -259,23 +218,13 @@ const DocumentsPage: React.FC = () => {
         onExport={() => console.log('Export documents')}
       />
 
-      {/* Dialog de création/édition */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+      {/* Dialog d'import */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingDocument ? 'Modifier le document' : 'Nouveau document'}
+          Importer un document
         </DialogTitle>
         <DialogContent>
-          <ArgonForm
-            title=""
-            fields={formFields}
-            onSubmit={(data) => {
-              console.log('Sauvegarder document:', data);
-              setOpenDialog(false);
-            }}
-            onCancel={() => setOpenDialog(false)}
-            initialData={editingDocument || {}}
-            submitLabel={editingDocument ? 'Mettre à jour' : 'Créer'}
-          />
+          <DocumentUploader onUploadComplete={() => { setOpenDialog(false); fetchDocuments(); }} />
         </DialogContent>
       </Dialog>
     </Box>

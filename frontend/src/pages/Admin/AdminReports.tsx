@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { getReports, generateReport, downloadReport, deleteReport } from '../../services/reportService';
-import { Report, ReportParams } from '../../types/admin.types';
+import { Report, ReportParams } from '../../types/reports.types';
 
 const AdminReports: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
@@ -92,19 +92,44 @@ const AdminReports: React.FC = () => {
       setFormError(null);
       setGenerating(true);
 
-      const report = await generateReport(formData);
-      setReports([report, ...reports]);
+      // Vérification des dates avant l'envoi
+      if (!formData.startDate || !formData.endDate) {
+        setFormError('Les dates sont requises');
+        return;
+      }
+
+      const report = await generateReport({
+        ...formData,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      });
+
+      // Ajout du nouveau rapport à la liste et fermeture du dialog
+      setReports(prevReports => [report, ...prevReports]);
       setOpenDialog(false);
+
+      // Rafraîchir la liste après un court délai pour voir les mises à jour
+      setTimeout(() => {
+        fetchReports();
+      }, 1000);
+
     } catch (err: any) {
-      setFormError(err.response?.data?.message || 'Erreur lors de la génération du rapport');
-      console.error('Error generating report:', err);
+      console.error('Erreur lors de la génération:', err);
+      setFormError(
+        err.response?.data?.message ||
+        'Erreur lors de la génération du rapport. Veuillez réessayer.'
+      );
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleDownload = async (reportId: string) => {
+  const handleDownload = async (reportId: string | undefined) => {
     try {
+      if (!reportId) {
+        setError('ID du rapport invalide');
+        return;
+      }
       const blob = await downloadReport(reportId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -119,8 +144,12 @@ const AdminReports: React.FC = () => {
     }
   };
 
-  const handleDelete = async (reportId: string) => {
+  const handleDelete = async (reportId: string | undefined) => {
     try {
+      if (!reportId) {
+        setError('ID du rapport invalide');
+        return;
+      }
       await deleteReport(reportId);
       await fetchReports();
     } catch (err: any) {
@@ -201,14 +230,16 @@ const AdminReports: React.FC = () => {
                     variant="outlined"
                     size="small"
                     startIcon={<DownloadIcon />}
-                    onClick={() => handleDownload(report.id)}
+                    onClick={() => handleDownload(report._id || report.id)}
+                    disabled={report.status !== 'completed'}
                   >
                     Télécharger
                   </Button>
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => handleDelete(report.id)}
+                    onClick={() => handleDelete(report._id || report.id)}
+                    disabled={report.status === 'in-progress'}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -252,13 +283,26 @@ const AdminReports: React.FC = () => {
                 label="Date de début"
                 value={formData.startDate}
                 onChange={(date) => setFormData({ ...formData, startDate: date })}
-                sx={{ flex: 1 }}
+                format="dd/MM/yyyy"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !formData.startDate && formError !== null
+                  }
+                }}
               />
               <DatePicker
                 label="Date de fin"
                 value={formData.endDate}
                 onChange={(date) => setFormData({ ...formData, endDate: date })}
-                sx={{ flex: 1 }}
+                format="dd/MM/yyyy"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !formData.endDate && formError !== null
+                  }
+                }}
+                minDate={formData.startDate || undefined}
               />
             </Box>
 

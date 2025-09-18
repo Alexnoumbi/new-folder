@@ -2,30 +2,19 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  Button,
-  Chip,
-  CircularProgress,
   Alert,
+  Paper,
+  Chip
 } from '@mui/material';
 import {
-  Settings as SettingsIcon,
-  Security as SecurityIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
   Memory,
-  Storage,
-  Timer,
-  People,
-  Refresh as RefreshIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
 import { getSystemInfo } from '../../services/adminService';
-import { SystemInfo } from '../../types/admin.types';
+import { SystemInfo } from '../../types/system.types';
 
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
-import ArgonMetricsWidget from '../../components/Argon/ArgonMetricsWidget';
-import ArgonRealtimeWidget from '../../components/Argon/ArgonRealtimeWidget';
 
 const formatUptime = (seconds: number): string => {
   const days = Math.floor(seconds / 86400);
@@ -66,7 +55,7 @@ const AdminSystem: React.FC = () => {
   const fetchSystemInfo = async () => {
     try {
       setLoading(true);
-      const data: SystemInfo = await getSystemInfo();
+      const data = await getSystemInfo();
       setSystemInfo(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des informations système');
@@ -83,92 +72,12 @@ const AdminSystem: React.FC = () => {
   const headerActions = [
     {
       label: 'Actualiser',
-      icon: <RefreshIcon />,
+      // icon: <RefreshIcon />,
       onClick: fetchSystemInfo,
       variant: 'outlined' as const,
       color: 'primary' as const
-    },
-    {
-      label: 'Paramètres',
-      icon: <SettingsIcon />,
-      onClick: () => console.log('Ouvrir paramètres'),
-      variant: 'contained' as const,
-      color: 'primary' as const
     }
   ];
-
-  // Données de démonstration pour les métriques
-  const systemMetrics = [
-    {
-      id: 'cpu',
-      label: 'Utilisation CPU',
-      value: systemInfo?.system.cpu || 0,
-      target: 80,
-      unit: '%',
-      color: 'primary' as const,
-      trend: 'up' as const,
-      trendValue: 5,
-      description: 'Charge processeur moyenne',
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: 'memory',
-      label: 'Utilisation Mémoire',
-      value: systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 : 0,
-      target: 85,
-      unit: '%',
-      color: 'warning' as const,
-      trend: 'stable' as const,
-      trendValue: 0,
-      description: 'Utilisation RAM système',
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: 'disk',
-      label: 'Espace Disque',
-      value: systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 : 0,
-      target: 90,
-      unit: '%',
-      color: 'success' as const,
-      trend: 'down' as const,
-      trendValue: -2,
-      description: 'Espace disque utilisé',
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: 'requests',
-      label: 'Requêtes',
-      value: systemInfo?.requests.perMinute || 0,
-      target: 1000,
-      unit: 'req/min',
-      color: 'info' as const,
-      trend: 'up' as const,
-      trendValue: 8,
-      description: 'Requêtes par minute',
-      lastUpdated: new Date().toISOString()
-    }
-  ];
-
-  // Données temps réel pour démonstration
-  const realtimeData = [
-    { timestamp: Date.now() - 5000, value: 45, label: 'CPU' },
-    { timestamp: Date.now() - 4000, value: 47, label: 'CPU' },
-    { timestamp: Date.now() - 3000, value: 43, label: 'CPU' },
-    { timestamp: Date.now() - 2000, value: 49, label: 'CPU' },
-    { timestamp: Date.now() - 1000, value: 46, label: 'CPU' },
-  ];
-
-  const getStatusColor = (value: number, threshold: number) => {
-    if (value >= threshold) return 'error';
-    if (value >= threshold * 0.8) return 'warning';
-    return 'success';
-  };
-
-  const getStatusIcon = (value: number, threshold: number) => {
-    if (value >= threshold) return <ErrorIcon />;
-    if (value >= threshold * 0.8) return <WarningIcon />;
-    return <CheckCircleIcon />;
-  };
 
   if (error) {
     return (
@@ -205,61 +114,38 @@ const AdminSystem: React.FC = () => {
         <ArgonCard
           title="CPU"
           value={`${systemInfo?.system.cpu || 0}%`}
-          icon={getStatusIcon(systemInfo?.system.cpu || 0, 80)}
-          color={getStatusColor(systemInfo?.system.cpu || 0, 80)}
-          change={`${((systemInfo?.requests.perMinute || 0) - (systemInfo?.requests.total || 0)) / (systemInfo?.requests.total || 1)}%`}
+          // icon={getStatusIcon(systemInfo?.system.cpu || 0, 80)}
+          // color={getStatusColor(systemInfo?.system.cpu || 0, 80)}
+          // change={`${((systemInfo?.requests.perMinute || 0) - (systemInfo?.requests.total || 0)) / (systemInfo?.requests.total || 1)}%`}
           loading={loading}
-          gradient={Boolean(systemInfo?.system.cpu && systemInfo.system.cpu > 80)}
+          // gradient={systemInfo?.system.cpu ? systemInfo.system.cpu > 80 : undefined}
         />
         <ArgonCard
           title="Mémoire"
           value={systemInfo ? `${Math.round((systemInfo.system.memory.used / systemInfo.system.memory.total) * 100)}%` : '0%'}
-          icon={getStatusIcon(systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 : 0, 85)}
-          color={getStatusColor(systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 : 0, 85)}
-          change={`${systemInfo?.system.memory.free} MB libres`}
+          // icon={getStatusIcon(systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 : 0, 85)}
+          // color={getStatusColor(systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 : 0, 85)}
+          // change={`${systemInfo?.system.memory.free} MB libres`}
           loading={loading}
-          gradient={Boolean(systemInfo && (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 > 85)}
+          // gradient={systemInfo ? (systemInfo.system.memory.used / systemInfo.system.memory.total) * 100 > 85 : undefined}
         />
         <ArgonCard
           title="Stockage"
           value={systemInfo ? `${Math.round((systemInfo.system.disk.used / systemInfo.system.disk.total) * 100)}%` : '0%'}
-          icon={getStatusIcon(systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 : 0, 90)}
-          color={getStatusColor(systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 : 0, 90)}
-          change={`${Math.round(systemInfo?.system.disk.free || 0)} GB libres`}
+          // icon={getStatusIcon(systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 : 0, 90)}
+          // color={getStatusColor(systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 : 0, 90)}
+          // change={`${Math.round(systemInfo?.system.disk.free || 0)} GB libres`}
           loading={loading}
-          gradient={Boolean(systemInfo && (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 > 90)}
+          // gradient={systemInfo ? (systemInfo.system.disk.used / systemInfo.system.disk.total) * 100 > 90 : undefined}
         />
         <ArgonCard
           title="Requêtes"
           value={`${systemInfo?.requests.perMinute || 0}/min`}
-          icon={getStatusIcon(systemInfo?.requests.perMinute || 0, 1000)}
-          color={getStatusColor(systemInfo?.requests.perMinute || 0, 1000)}
-          change={`Total: ${systemInfo?.requests.total || 0}`}
+          // icon={getStatusIcon(systemInfo?.requests.perMinute || 0, 1000)}
+          // color={getStatusColor(systemInfo?.requests.perMinute || 0, 1000)}
+          // change={`Total: ${systemInfo?.requests.total || 0}`}
           loading={loading}
-          gradient={Boolean(systemInfo?.requests.perMinute && systemInfo.requests.perMinute > 1000)}
-        />
-      </Box>
-
-      {/* Widget de métriques */}
-      <Box sx={{ mb: 4 }}>
-        <ArgonMetricsWidget
-          title="Métriques Système"
-          metrics={systemMetrics}
-          showTrends={true}
-          showTargets={true}
-          onRefresh={fetchSystemInfo}
-          loading={loading}
-        />
-      </Box>
-
-      {/* Widget temps réel */}
-      <Box sx={{ mb: 4 }}>
-        <ArgonRealtimeWidget
-          title="Performance CPU en Temps Réel"
-          data={realtimeData}
-          color="#667eea"
-          unit="%"
-          threshold={{ warning: 80, critical: 95 }}
+          // gradient={systemInfo?.requests.perMinute ? systemInfo.requests.perMinute > 1000 : undefined}
         />
       </Box>
 
@@ -273,7 +159,7 @@ const AdminSystem: React.FC = () => {
           <ArgonCard
             title="Informations Système"
             value=""
-            icon={<SettingsIcon />}
+            icon={<Memory />}
             color="info"
           />
           <Box sx={{ mt: 2, p: 3 }}>

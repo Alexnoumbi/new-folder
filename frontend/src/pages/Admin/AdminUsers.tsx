@@ -26,17 +26,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/userService';
-import { User } from '../../types/auth.types';
-
-interface UserFormData {
-  nom: string;
-  prenom: string;
-  email: string;
-  role: 'user' | 'admin' | 'super_admin';
-  typeCompte: 'admin' | 'entreprise';
-  telephone?: string;
-  entrepriseId?: string;
-}
+import type { User, UserCreateData, UserUpdateData } from '../../types/user.types';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -46,25 +36,30 @@ const AdminUsers: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<UserFormData>({
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [typeCompteFilter, setTypeCompteFilter] = useState<string>('');
+  const [formData, setFormData] = useState<UserCreateData>({
     nom: '',
     prenom: '',
     email: '',
     role: 'user',
     typeCompte: 'admin',
     telephone: '',
-    entrepriseId: ''
+    entreprise: '',
+    status: 'active'
   });
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getUsers();
-      setUsers(data);
+      const data = await getUsers(searchTerm, roleFilter, typeCompteFilter);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des utilisateurs');
       console.error('Error loading users:', err);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -72,7 +67,7 @@ const AdminUsers: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [searchTerm, roleFilter, typeCompteFilter]);
 
   const handleOpenCreateDialog = () => {
     setFormData({
@@ -82,7 +77,8 @@ const AdminUsers: React.FC = () => {
       role: 'user',
       typeCompte: 'admin',
       telephone: '',
-      entrepriseId: ''
+      entreprise: '',
+      status: 'active'
     });
     setEditingUser(null);
     setFormError(null);
@@ -97,7 +93,8 @@ const AdminUsers: React.FC = () => {
       role: user.role,
       typeCompte: user.typeCompte,
       telephone: user.telephone || '',
-      entrepriseId: user.entrepriseId || ''
+      entreprise: user.entreprise || '',
+      status: user.status
     });
     setEditingUser(user);
     setFormError(null);
@@ -105,10 +102,10 @@ const AdminUsers: React.FC = () => {
   };
 
   const validateForm = () => {
-    if (!formData.nom.trim()) return 'Le nom est requis';
-    if (!formData.prenom.trim()) return 'Le prénom est requis';
-    if (!formData.email.trim()) return 'L\'email est requis';
-    if (!formData.email.includes('@')) return 'Email invalide';
+    if (!formData.nom?.trim()) return 'Le nom est requis';
+    if (!formData.prenom?.trim()) return 'Le prénom est requis';
+    if (!formData.email?.trim()) return 'L\'email est requis';
+    if (!formData.email?.includes('@')) return 'Email invalide';
     if (!formData.role) return 'Le rôle est requis';
     if (!formData.typeCompte) return 'Le type de compte est requis';
     return null;
@@ -126,7 +123,7 @@ const AdminUsers: React.FC = () => {
       setLoading(true);
 
       if (editingUser) {
-        await updateUser(editingUser._id, formData);
+        await updateUser(editingUser.id, formData);
       } else {
         await createUser(formData);
       }
@@ -190,10 +187,10 @@ const AdminUsers: React.FC = () => {
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>
-      ) : (
+      ) : users.length > 0 ? (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
           {users.map((user) => (
-            <Box key={user._id}>
+            <Box key={user.id}>
               <Box
                 sx={{
                   p: 2,
@@ -229,7 +226,7 @@ const AdminUsers: React.FC = () => {
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => handleDelete(user._id)}
+                    onClick={() => handleDelete(user.id)}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -238,151 +235,88 @@ const AdminUsers: React.FC = () => {
             </Box>
           ))}
         </Box>
+      ) : (
+        <Alert severity="info">
+          Aucun utilisateur trouvé. Ajustez vos filtres ou créez un nouvel utilisateur.
+        </Alert>
       )}
 
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingUser ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}
-        </DialogTitle>
-        <DialogContent>
-          {formError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError}
-            </Alert>
-          )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="Nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-              />
-              <TextField
-                fullWidth
-                label="Prénom"
-                value={formData.prenom}
-                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-              />
+      {viewingUser && (
+        <Dialog
+          open={!!viewingUser}
+          onClose={() => setViewingUser(null)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: 'primary.main' }}>
+                {viewingUser.nom.charAt(0)}
+              </Avatar>
+              <Box>
+                <Typography variant="h6">{`${viewingUser.nom} ${viewingUser.prenom}`}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {viewingUser.email}
+                </Typography>
+              </Box>
             </Box>
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Rôle</InputLabel>
-                <Select
-                  value={formData.role}
-                  label="Rôle"
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role']})}
-                >
-                  <MenuItem value="user">Utilisateur</MenuItem>
-                  <MenuItem value="admin">Administrateur</MenuItem>
-                  <MenuItem value="super_admin">Super Admin</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Type de Compte</InputLabel>
-                <Select
-                  value={formData.typeCompte}
-                  label="Type de Compte"
-                  onChange={(e) => setFormData({ ...formData, typeCompte: e.target.value as User['typeCompte']})}
-                >
-                  <MenuItem value="admin">Administration</MenuItem>
-                  <MenuItem value="entreprise">Entreprise</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-            <TextField
-              fullWidth
-              label="Téléphone"
-              value={formData.telephone}
-              onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-            />
-            {formData.typeCompte === 'entreprise' && (
-              <TextField
-                fullWidth
-                label="ID Entreprise"
-                value={formData.entrepriseId}
-                onChange={(e) => setFormData({ ...formData, entrepriseId: e.target.value })}
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Annuler</Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : editingUser ? 'Mettre à jour' : 'Créer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={!!viewingUser}
-        onClose={() => setViewingUser(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Détails de l'Utilisateur</DialogTitle>
-        <DialogContent>
-          {viewingUser && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mt: 2 }}>
               <Box>
-                <Typography variant="subtitle2">Nom Complet</Typography>
-                <Typography>{`${viewingUser.nom} ${viewingUser.prenom}`}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2">Email</Typography>
-                <Typography>{viewingUser.email}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2">Rôle</Typography>
-                <Chip
-                  label={viewingUser.role}
-                  color={viewingUser.role === 'admin' ? 'error' : 'primary'}
-                />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2">Type de Compte</Typography>
-                <Chip
-                  label={viewingUser.typeCompte === 'admin' ? 'Administration' : 'Entreprise'}
-                  color={viewingUser.typeCompte === 'admin' ? 'secondary' : 'info'}
-                />
-              </Box>
-              {viewingUser.telephone && (
-                <Box>
-                  <Typography variant="subtitle2">Téléphone</Typography>
-                  <Typography>{viewingUser.telephone}</Typography>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Informations Personnelles
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Email"
+                    value={viewingUser.email}
+                    disabled
+                    fullWidth
+                  />
+                  <TextField
+                    label="Téléphone"
+                    value={viewingUser.telephone || 'Non renseigné'}
+                    disabled
+                    fullWidth
+                  />
                 </Box>
-              )}
-              {viewingUser.entrepriseId && (
-                <Box>
-                  <Typography variant="subtitle2">ID Entreprise</Typography>
-                  <Typography>{viewingUser.entrepriseId}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Informations Professionnelles
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Entreprise"
+                    value={viewingUser.entreprise || 'Non renseigné'}
+                    disabled
+                    fullWidth
+                  />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Chip
+                      label={viewingUser.role}
+                      color={viewingUser.role === 'admin' ? 'error' : 'primary'}
+                      size="small"
+                    />
+                    <Chip
+                      label={viewingUser.status}
+                      color={viewingUser.status === 'active' ? 'success' : 'warning'}
+                      size="small"
+                    />
+                  </Box>
                 </Box>
-              )}
+              </Box>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewingUser(null)}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewingUser(null)}>Fermer</Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };
 
+export { AdminUsers };
 export default AdminUsers;

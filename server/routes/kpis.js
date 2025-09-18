@@ -1,21 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { auth, authorize } = require('../middleware/auth');
-const kpiController = require('../controllers/kpiController');
+const auth = require('../middleware/auth');
+const {
+    getKPIs,
+    createKPI,
+    getKPI,
+    updateKPI,
+    deleteKPI,
+    getEnterpriseKPIs,
+    submitKPIValue,
+    getKPIHistory
+} = require('../controllers/kpiController');
 
-// Protéger toutes les routes
-router.use(auth);
+// Routes de base des KPIs
+router.get('/', auth, getKPIs);
+router.post('/', auth, createKPI);
+router.get('/:id', auth, getKPI);
+router.put('/:id', auth, updateKPI);
+router.delete('/:id', auth, deleteKPI);
 
-// Routes des KPIs
-router.post('/', authorize('admin'), kpiController.createKPI);
-router.get('/', kpiController.getKPIs);
-router.get('/:id', kpiController.getKPI);
-router.put('/:id', authorize('admin'), kpiController.updateKPI);
-router.delete('/:id', authorize('admin'), kpiController.deleteKPI);
-
-// Routes spéciales
-router.get('/enterprise/:enterpriseId', kpiController.getEnterpriseKPIs);
-router.post('/:kpiId/submit', kpiController.submitKPIValue);
-router.get('/:kpiId/history', kpiController.getKPIHistory);
+// Routes spécifiques à l'entreprise
+router.get('/enterprise/:enterpriseId', auth, getEnterpriseKPIs);
+router.post('/:kpiId/submit', auth, submitKPIValue);
+router.get('/:kpiId/history', auth, getKPIHistory);
 
 module.exports = router;

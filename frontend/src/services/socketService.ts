@@ -1,87 +1,83 @@
-import io from 'socket.io-client';
+import socketIOClient from 'socket.io-client';
+import { getCurrentUser } from './authService';
 
-class SocketService {
-  private socket: ReturnType<typeof io> | null = null;
-  private listeners: Map<string, Function[]> = new Map();
-
-  connect() {
-    if (this.socket?.connected) {
-      return;
-    }
-
-    const token = localStorage.getItem('token'); // ou votre méthode de récupération du token
-    this.socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
-      auth: {
-        token,
-      },
-    });
-
-    this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket?.id);
-    });
-
-    this.socket.on('connect_error', (error: any) => {
-      console.error('Socket connection error:', error);
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
-
-    // Set up indicator event listeners
-    this.socket.on('indicator:updated', (data: any) => {
-      this.notifyListeners('indicator:updated', data);
-    });
-
-    this.socket.on('indicator:validated', (data: any) => {
-      this.notifyListeners('indicator:validated', data);
-    });
-
-    this.socket.on('indicator:pending-validation', (data: any) => {
-      this.notifyListeners('indicator:pending-validation', data);
-    });
-  }
-
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  on(event: string, callback: Function) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-    this.listeners.get(event)?.push(callback);
-  }
-
-  off(event: string, callback: Function) {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      const index = listeners.indexOf(callback);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
-    }
-  }
-
-  emit(event: string, data: any) {
-    if (this.socket) {
-      this.socket.emit(event, data);
-    }
-  }
-
-  private notifyListeners(event: string, data: any) {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      listeners.forEach(callback => callback(data));
-    }
-  }
-
-  get isConnected() {
-    return this.socket?.connected || false;
-  }
+interface SocketOptions {
+  query?: {
+    userId: string;
+    userType?: 'entreprise' | 'admin';
+  };
+  reconnection?: boolean;
+  reconnectionAttempts?: number;
+  reconnectionDelay?: number;
+  timeout?: number;
 }
 
-export default new SocketService();
+// Use permissive any to avoid typing conflicts with socket.io-client versions
+let socket: any = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+
+export const initializeSocket = (): any | null => {
+  if (socket) return socket;
+
+  const user = getCurrentUser();
+  if (!user?.id) return null;
+
+  const options: SocketOptions = {
+    query: {
+      userId: user.id,
+      userType: user.typeCompte
+    },
+    reconnection: true,
+    reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+    reconnectionDelay: 1000,
+    timeout: 10000
+  };
+
+  socket = socketIOClient(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', options);
+
+  const s = socket;
+  if (!s) return null;
+
+  s.on('connect', () => {
+    console.log('Socket connected');
+    reconnectAttempts = 0;
+  });
+
+  s.on('connect_error', (error: Error) => {
+    console.error('Socket connection error:', error);
+    reconnectAttempts++;
+
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('Max reconnection attempts reached');
+      disconnectSocket();
+    }
+  });
+
+  s.on('disconnect', (reason: string) => {
+    console.log('Socket disconnected:', reason);
+    if (reason === 'io server disconnect') {
+      // Server initiated disconnect, attempt to reconnect
+      s.connect?.();
+    }
+  });
+
+  s.on('error', (error: Error) => {
+    console.error('Socket error:', error);
+  });
+
+  return socket;
+};
+
+export const getSocket = (): any | null => socket;
+
+export const disconnectSocket = (): void => {
+  if (socket) {
+    socket.disconnect?.();
+  }
+  reconnectAttempts = 0;
+};
+
+export const isSocketConnected = (): boolean => {
+  return !!socket && !!socket.connected;
+};

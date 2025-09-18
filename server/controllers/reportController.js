@@ -1,200 +1,172 @@
-const reportService = require('../utils/reports/reportService');
-const Entreprise = require('../models/Entreprise');
-const User = require('../models/User');
-const KPI = require('../models/KPI');
-const Document = require('../models/Document');
-const Visit = require('../models/Visit');
+const Report = require('../models/Report');
+const { generatePDF } = require('../utils/reports/pdfGenerator');
+const { generateExcel } = require('../utils/reports/excelGenerator');
+const fs = require('fs').promises;
+const path = require('path');
 
-// @desc    Générer un rapport
-// @route   POST /api/reports/generate
-// @access  Private (Admin)
+// Récupérer tous les rapports
+exports.getReports = async (req, res) => {
+    try {
+        const reports = await Report.find()
+            .sort({ createdAt: -1 })
+            .populate('author', 'name email');
+        res.json(reports);
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        res.status(500).json({ message: 'Erreur lors de la récupération des rapports' });
+    }
+};
+
+// Générer un nouveau rapport
 exports.generateReport = async (req, res) => {
     try {
-        const { type, format, dateDebut, dateFin } = req.body;
-        const report = await reportService.generateReport(type, format, dateDebut, dateFin);
-        res.json({
-            success: true,
-            data: report
+        const { type, startDate, endDate, format, includeCharts } = req.body;
+
+        // Créer le rapport dans la base de données
+        const report = new Report({
+            title: `Rapport ${type} - ${new Date().toLocaleDateString()}`,
+            type,
+            format,
+            author: req.user._id,
+            startDate,
+            endDate,
+            status: 'in-progress'
         });
+
+        await report.save();
+
+        // Démarrer la génération en arrière-plan
+        generateReportInBackground(report._id, format, includeCharts)
+            .catch(error => console.error('Error generating report:', error));
+
+        res.status(201).json(report);
     } catch (error) {
-        console.error('Erreur génération rapport:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Erreur lors de la génération du rapport'
-        });
+        console.error('Error creating report:', error);
+        res.status(500).json({ message: 'Erreur lors de la création du rapport' });
     }
 };
 
-// @desc    Obtenir les types de rapports
-// @route   GET /api/reports/types
-// @access  Private (Admin)
-exports.getReportTypes = async (req, res) => {
+// Télécharger un rapport
+exports.downloadReport = async (req, res) => {
     try {
-        const types = [
-            {
-                id: 'entreprises',
-                name: 'Rapport des entreprises',
-                formats: ['pdf', 'excel'],
-                description: 'Rapport complet des entreprises inscrites'
-            },
-            {
-                id: 'utilisateurs',
-                name: 'Rapport des utilisateurs',
-                formats: ['pdf', 'excel'],
-                description: 'Rapport des utilisateurs actifs'
-            },
-            {
-                id: 'kpis',
-                name: 'Rapport des KPIs',
-                formats: ['pdf', 'excel'],
-                description: 'Rapport des indicateurs de performance'
-            },
-            {
-                id: 'visites',
-                name: 'Rapport des visites',
-                formats: ['pdf', 'excel'],
-                description: 'Rapport des visites d\'inspection'
+        console.log('Downloading report with id:', req.params.id);
+
+        const report = await Report.findById(req.params.id);
+        if (!report) {
+            console.error('Report not found:', req.params.id);
+            return res.status(404).json({ message: 'Rapport non trouvé' });
+        }
+
+        // Vérifier le statut du rapport
+        if (report.status !== 'completed') {
+            console.error('Report not ready:', report.status);
+            return res.status(400).json({ message: 'Le rapport n\'est pas encore prêt' });
+        }
+
+        // Vérifier que le fichier existe
+        const filePath = path.join(__dirname, '..', 'uploads', 'reports', report.filePath);
+        try {
+            await fs.access(filePath);
+        } catch (error) {
+            console.error('File not found:', filePath);
+            return res.status(404).json({ message: 'Fichier non trouvé' });
+        }
+
+        // Envoyer le fichier
+        res.download(filePath, `${report.title}.${report.format}`, (err) => {
+            if (err) {
+                console.error('Download error:', err);
+                // Ne pas envoyer d'erreur si la réponse a déjà été envoyée
+                if (!res.headersSent) {
+                    res.status(500).json({ message: 'Erreur lors du téléchargement du fichier' });
+                }
             }
-        ];
-
-        res.json({
-            success: true,
-            data: types
         });
     } catch (error) {
-        console.error('Erreur types rapports:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Erreur lors de la récupération des types de rapports'
-        });
+        console.error('Error in downloadReport:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Erreur lors du téléchargement du rapport' });
+        }
     }
 };
 
-// @desc    Générer un rapport pour une entreprise
-// @route   POST /api/reports/entreprise/generate
-// @access  Private (Entreprise)
-exports.generateEntrepriseReport = async (req, res) => {
+// Supprimer un rapport
+exports.deleteReport = async (req, res) => {
     try {
-        const { type, format, dateDebut, dateFin } = req.body;
-        const userId = req.user.id;
-        
-        // Récupérer l'entreprise de l'utilisateur
-        const user = await User.findById(userId).populate('entrepriseId');
-        if (!user.entrepriseId) {
-            return res.status(404).json({
-                success: false,
-                message: 'Aucune entreprise associée à cet utilisateur'
-            });
+        const report = await Report.findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({ message: 'Rapport non trouvé' });
         }
 
-        const entrepriseId = user.entrepriseId._id;
-        let data = {};
-
-        // Générer les données selon le type de rapport
-        switch (type) {
-            case 'kpis':
-                data = await generateKPIsReport(entrepriseId, dateDebut, dateFin);
-                break;
-            case 'documents':
-                data = await generateDocumentsReport(entrepriseId, dateDebut, dateFin);
-                break;
-            case 'visites':
-                data = await generateVisitesReport(entrepriseId, dateDebut, dateFin);
-                break;
-            default:
-                return res.status(400).json({
-                    success: false,
-                    message: 'Type de rapport non supporté'
-                });
+        // Supprimer le fichier physique si existant
+        if (report.filePath) {
+            try {
+                await fs.unlink(path.join(__dirname, '..', 'uploads', 'reports', report.filePath));
+            } catch (error) {
+                console.error('Error deleting report file:', error);
+            }
         }
 
-        // Générer le fichier selon le format
-        const report = await reportService.generateFile(data, format, type, user.entrepriseId.nom);
-
-        res.json({
-            success: true,
-            data: report
-        });
+        await report.remove();
+        res.json({ message: 'Rapport supprimé avec succès' });
     } catch (error) {
-        console.error('Erreur génération rapport entreprise:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Erreur lors de la génération du rapport'
-        });
+        console.error('Error deleting report:', error);
+        res.status(500).json({ message: 'Erreur lors de la suppression du rapport' });
     }
 };
 
-// Fonctions helper pour générer les données des rapports
-async function generateKPIsReport(entrepriseId, dateDebut, dateFin) {
-    const filter = { entrepriseId };
-    if (dateDebut && dateFin) {
-        filter.createdAt = {
-            $gte: new Date(dateDebut),
-            $lte: new Date(dateFin)
-        };
-    }
-
-    const kpis = await KPI.find(filter)
-        .populate('indicatorId', 'nom description unite')
-        .sort({ createdAt: -1 });
-
-    return {
-        title: 'Rapport des KPIs',
-        data: kpis,
-        summary: {
-            total: kpis.length,
-            validated: kpis.filter(k => k.statut === 'VALIDATED').length,
-            pending: kpis.filter(k => k.statut === 'PENDING').length,
-            rejected: kpis.filter(k => k.statut === 'REJECTED').length
+// Fonction utilitaire pour générer le rapport en arrière-plan
+async function generateReportInBackground(reportId, format, includeCharts) {
+    try {
+        const report = await Report.findById(reportId);
+        if (!report) {
+            console.error('Report not found:', reportId);
+            return;
         }
-    };
-}
 
-async function generateDocumentsReport(entrepriseId, dateDebut, dateFin) {
-    const filter = { entrepriseId };
-    if (dateDebut && dateFin) {
-        filter.uploadedAt = {
-            $gte: new Date(dateDebut),
-            $lte: new Date(dateFin)
-        };
-    }
+        // Mettre à jour le statut et le progrès
+        report.status = 'in-progress';
+        report.progress = 10;
+        await report.save();
 
-    const documents = await Document.find(filter)
-        .sort({ uploadedAt: -1 });
+        // Créer le nom du fichier
+        const fileName = `report-${reportId}-${Date.now()}.${format}`;
+        const filePath = path.join(__dirname, '..', 'uploads', 'reports', fileName);
 
-    return {
-        title: 'Rapport des Documents',
-        data: documents,
-        summary: {
-            total: documents.length,
-            received: documents.filter(d => d.status === 'RECEIVED').length,
-            waiting: documents.filter(d => d.status === 'WAITING').length,
-            expired: documents.filter(d => d.status === 'EXPIRED').length
+        // Générer le contenu selon le format
+        try {
+            if (format === 'pdf') {
+                await generatePDF(report, filePath, includeCharts);
+            } else if (format === 'excel') {
+                await generateExcel(report, filePath, includeCharts);
+            }
+
+            // Mettre à jour le rapport avec le chemin du fichier et le statut
+            report.filePath = fileName;
+            report.status = 'completed';
+            report.progress = 100;
+            await report.save();
+
+        } catch (genError) {
+            console.error('Error generating file:', genError);
+            report.status = 'failed';
+            report.error = genError.message;
+            await report.save();
         }
-    };
-}
 
-async function generateVisitesReport(entrepriseId, dateDebut, dateFin) {
-    const filter = { entrepriseId };
-    if (dateDebut && dateFin) {
-        filter.scheduledAt = {
-            $gte: new Date(dateDebut),
-            $lte: new Date(dateFin)
-        };
-    }
-
-    const visites = await Visit.find(filter)
-        .populate('inspectorId', 'nom prenom')
-        .sort({ scheduledAt: -1 });
-
-    return {
-        title: 'Rapport des Visites',
-        data: visites,
-        summary: {
-            total: visites.length,
-            planned: visites.filter(v => v.status === 'PLANNED').length,
-            completed: visites.filter(v => v.status === 'COMPLETED').length,
-            cancelled: visites.filter(v => v.status === 'CANCELLED').length
+    } catch (error) {
+        console.error('Error in background generation:', error);
+        // Tenter de mettre à jour le statut en cas d'erreur
+        try {
+            const report = await Report.findById(reportId);
+            if (report) {
+                report.status = 'failed';
+                report.error = error.message;
+                await report.save();
+            }
+        } catch (updateError) {
+            console.error('Error updating report status:', updateError);
         }
-    };
+    }
 }

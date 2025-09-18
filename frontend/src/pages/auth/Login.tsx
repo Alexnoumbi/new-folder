@@ -17,28 +17,45 @@ const Login = () => {
   const { setUser } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setLoading(true);
 
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
     try {
-      const response = await login({ email, password });
-      setUser(response.user);
+      if (!formData.email || !formData.password) {
+        throw new Error('Veuillez remplir tous les champs');
+      }
 
-      const isAdmin = response.user.role === 'admin' || response.user.role === 'super_admin' || response.user.typeCompte === 'admin';
-      if (isAdmin) {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/enterprise/dashboard');
+      const response = await login(formData);
+      const { user } = response;
+
+      if (!user) {
+        throw new Error('Erreur lors de la connexion');
+      }
+
+      // Set user in auth context
+      setUser(user);
+
+      // Redirect based on user type
+      switch (user.typeCompte) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'entreprise':
+          navigate('/enterprise/dashboard');
+          break;
+        default:
+          setError('Type de compte non reconnu');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur de connexion');
+      setError(err.message || 'Une erreur est survenue lors de la connexion');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -73,6 +90,8 @@ const Login = () => {
             autoComplete="email"
             placeholder="votre@email.com"
             autoFocus
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
 
           <label className="auth-input-label" htmlFor="password">
@@ -87,6 +106,8 @@ const Login = () => {
             id="password"
             autoComplete="current-password"
             placeholder="Votre mot de passe"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           />
 
           <Button

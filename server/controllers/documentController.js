@@ -1,200 +1,139 @@
 const Document = require('../models/Document');
-const { uploadToS3, deleteFromS3 } = require('../utils/s3');
+const fs = require('fs');
+const path = require('path');
 
-// @desc    Obtenir les documents d'une entreprise
-// @route   GET /api/documents/company/:companyId
-exports.getCompanyDocuments = async (req, res) => {
-  try {
-    const documents = await Document.find({ enterpriseId: req.params.companyId })
-      .populate('validatedBy', 'nom prenom');
-    res.json({
-      success: true,
-      data: documents
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération des documents'
-    });
-  }
+// @desc    Upload un nouveau document
+// @route   POST /api/documents
+exports.uploadDocument = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "Aucun fichier n'a été téléchargé" });
+        }
+
+        const enterpriseId = req.user?.entrepriseId;
+        if (!enterpriseId) {
+            return res.status(400).json({ message: "Entreprise introuvable pour l'utilisateur" });
+        }
+
+        const doc = await Document.create({
+            enterpriseId,
+            type: req.body.type || 'OTHER',
+            required: true,
+            dueDate: new Date(Date.now() + 30*24*60*60*1000),
+            status: 'RECEIVED',
+            files: [{
+                name: req.file.originalname,
+                url: req.file.path,
+                uploadedAt: new Date()
+            }],
+            uploadedAt: new Date()
+        });
+
+        return res.status(201).json(doc);
+    } catch (error) {
+        console.error('Erreur lors de l\'upload:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'upload du document' });
+    }
 };
 
-// @desc    Télécharger un document
+// @desc    Récupérer tous les documents
+// @route   GET /api/documents
+exports.getDocuments = async (req, res) => {
+    try {
+        const enterpriseId = req.user?.entrepriseId;
+        if (!enterpriseId) {
+            return res.status(400).json({ message: "Entreprise introuvable pour l'utilisateur" });
+        }
+
+        const documents = await Document.find({ enterpriseId }).sort({ createdAt: -1 });
+        return res.json(documents);
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors de la récupération des documents' });
+    }
+};
+
+// @desc    Récupérer un document spécifique
 // @route   GET /api/documents/:id
 exports.getDocument = async (req, res) => {
-  try {
-    const document = await Document.findById(req.params.id)
-      .populate('validatedBy', 'nom prenom');
+    try {
+        const document = await Document.findOne({
+            _id: req.params.id,
+            enterpriseId: req.user.entrepriseId
+        });
 
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'Document non trouvé'
-      });
+        if (!document) {
+            return res.status(404).json({ message: 'Document non trouvé' });
+        }
+
+        return res.json(document);
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors de la récupération du document' });
     }
-
-    res.json({
-      success: true,
-      data: document
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération du document'
-    });
-  }
 };
 
-// @desc    Uploader un document
-// @route   POST /api/documents/company/:companyId/upload
-exports.uploadDocument = async (req, res) => {
-  try {
-    const { type, description } = req.body;
-    const file = req.file;
+// @desc    Mettre à jour un document
+// @route   PUT /api/documents/:id
+exports.updateDocument = async (req, res) => {
+    try {
+        const document = await Document.findOneAndUpdate(
+            { _id: req.params.id, enterpriseId: req.user.entrepriseId },
+            req.body,
+            { new: true, runValidators: true }
+        );
 
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier fourni'
-      });
+        if (!document) {
+            return res.status(404).json({ message: 'Document non trouvé' });
+        }
+
+        return res.json(document);
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors de la mise à jour du document' });
     }
-
-    // Upload le fichier sur S3
-    const uploadResult = await uploadToS3(file);
-
-    // Créer l'enregistrement du document
-    const document = await Document.create({
-      enterpriseId: req.params.companyId,
-      type,
-      description,
-      file: {
-        name: file.originalname,
-        url: uploadResult.Location,
-        type: file.mimetype,
-        size: file.size
-      },
-      uploadedBy: req.user.id,
-      uploadedAt: new Date(),
-      status: 'EN_ATTENTE'
-    });
-
-    res.status(201).json({
-      success: true,
-      data: document
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de l\'upload du document'
-    });
-  }
-};
-
-// @desc    Valider un document
-// @route   PUT /api/documents/:id/validate
-exports.validateDocument = async (req, res) => {
-  try {
-    const { status, comment } = req.body;
-    const document = await Document.findById(req.params.id);
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'Document non trouvé'
-      });
-    }
-
-    document.status = status;
-    document.validationComment = comment;
-    document.validatedBy = req.user.id;
-    document.validatedAt = new Date();
-
-    await document.save();
-
-    res.json({
-      success: true,
-      data: document
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la validation du document'
-    });
-  }
 };
 
 // @desc    Supprimer un document
 // @route   DELETE /api/documents/:id
 exports.deleteDocument = async (req, res) => {
-  try {
-    const document = await Document.findById(req.params.id);
+    try {
+        const document = await Document.findOne({ _id: req.params.id, enterpriseId: req.user.entrepriseId });
 
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'Document non trouvé'
-      });
+        if (!document) {
+            return res.status(404).json({ message: 'Document non trouvé' });
+        }
+
+        // Supprimer les fichiers physiques
+        if (Array.isArray(document.files)) {
+            for (const f of document.files) {
+                if (f.url && fs.existsSync(f.url)) {
+                    try { fs.unlinkSync(f.url); } catch {}
+                }
+            }
+        }
+
+        await document.deleteOne();
+        return res.json({ message: 'Document supprimé avec succès' });
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors de la suppression du document' });
     }
-
-    // Supprimer le fichier de S3
-    if (document.file && document.file.url) {
-      await deleteFromS3(document.file.url);
-    }
-
-    await document.remove();
-
-    res.json({
-      success: true,
-      data: {}
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la suppression du document'
-    });
-  }
 };
 
-// @desc    Obtenir les types de documents
-// @route   GET /api/documents/types
-exports.getDocumentTypes = async (req, res) => {
-  try {
-    const types = [
-      {
-        id: 'CONVENTION',
-        name: 'Convention',
-        description: 'Documents liés aux conventions'
-      },
-      {
-        id: 'RAPPORT',
-        name: 'Rapport',
-        description: 'Rapports d\'activité'
-      },
-      {
-        id: 'LEGAL',
-        name: 'Document légal',
-        description: 'Documents juridiques et administratifs'
-      },
-      {
-        id: 'FINANCIER',
-        name: 'Document financier',
-        description: 'Documents financiers et comptables'
-      },
-      {
-        id: 'AUTRE',
-        name: 'Autre',
-        description: 'Autres types de documents'
-      }
-    ];
+// @desc    Télécharger un document
+// @route   GET /api/documents/:id/download
+exports.downloadDocument = async (req, res) => {
+    try {
+        const document = await Document.findOne({ _id: req.params.id, enterpriseId: req.user.entrepriseId });
 
-    res.json({
-      success: true,
-      data: types
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération des types de documents'
-    });
-  }
+        if (!document) {
+            return res.status(404).json({ message: 'Document non trouvé' });
+        }
+
+        const first = Array.isArray(document.files) ? document.files[0] : null;
+        if (!first?.url || !fs.existsSync(first.url)) {
+            return res.status(404).json({ message: 'Fichier non trouvé' });
+        }
+
+        res.download(first.url, first.name || 'document');
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors du téléchargement du document' });
+    }
 };

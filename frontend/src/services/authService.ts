@@ -1,74 +1,123 @@
-import axios from 'axios';
-import { User } from '../types/auth.types';
+import api from './api';
+import { LoginCredentials, RegisterData, AuthResponse } from '../types/auth.types';
+import type { User } from '../types/user.types';
 
-const API_URL = 'http://localhost:5000/api';
+export const loadEnterpriseDashboard = async (user: User) => {
+  if (!user?.id) {
+    console.log('Cannot load enterprise data: invalid user or missing ID');
+    return null;
+  }
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+  try {
+    const [dashboardData] = await Promise.all([
+      api.get(`/dashboard/enterprise/${user.id}`)
+    ]);
 
-export interface RegisterData {
-  nom: string;
-  prenom: string;
-  email: string;
-  password: string;
-  role?: 'admin' | 'entreprise';
-  typeCompte?: 'admin' | 'entreprise';
-  telephone?: string;
-}
+    localStorage.setItem('enterpriseDashboard', JSON.stringify(dashboardData.data));
 
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
+    const [messagesData, reportsData] = await Promise.all([
+      api.get(`/messages/${user.id}`),
+      api.get(`/reports/enterprise/${user.id}`)
+    ]);
 
-export const setAuthToken = (token: string) => {
-  if (token) {
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    localStorage.setItem('enterpriseMessages', JSON.stringify(messagesData.data));
+    localStorage.setItem('enterpriseReports', JSON.stringify(reportsData.data));
+
+    return {
+      dashboard: dashboardData.data,
+      messages: messagesData.data,
+      reports: reportsData.data
+    };
+  } catch (error) {
+    console.error('Error loading enterprise data:', error);
+    return {
+      dashboard: JSON.parse(localStorage.getItem('enterpriseDashboard') || 'null'),
+      messages: JSON.parse(localStorage.getItem('enterpriseMessages') || 'null'),
+      reports: JSON.parse(localStorage.getItem('enterpriseReports') || 'null')
+    };
   }
 };
 
-export const getStoredToken = () => {
-  return localStorage.getItem('token');
-};
-
-export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+export const login = async ({ email, password }: LoginCredentials): Promise<AuthResponse> => {
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, credentials);
-    const { token, user } = response.data;
-    setAuthToken(token);
-    return { user, token };
-  } catch (error) {
-    throw error;
+    const response = await api.post(`/auth/login`, { email, password });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Erreur de connexion');
+    }
+
+    const serverData = response.data.data;
+    if (!serverData?.user?.id) {
+      throw new Error('Données utilisateur invalides');
+    }
+
+    const user: User = {
+      id: serverData.user.id,
+      email: serverData.user.email,
+      nom: serverData.user.nom,
+      prenom: serverData.user.prenom,
+      role: serverData.user.role as User['role'],
+      typeCompte: serverData.user.typeCompte,
+      status: serverData.user.status || 'active',
+      telephone: serverData.user.telephone,
+      entrepriseId: serverData.user.entrepriseId
+    };
+
+    try { localStorage.setItem('user', JSON.stringify(user)); } catch {}
+
+    if (user.typeCompte === 'entreprise') {
+      await loadEnterpriseDashboard(user).catch(() => {});
+    }
+
+    return { user };
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data?.message || 'Erreur de serveur');
+    } else if (error.request) {
+      throw new Error('Impossible de contacter le serveur');
+    } else {
+      throw new Error(error.message || 'Erreur de connexion');
+    }
   }
 };
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   try {
-    const response = await axios.post(`${API_URL}/auth/register`, data);
-    const { token, user } = response.data;
-    setAuthToken(token);
-    return { user, token };
+    const response = await api.post(`/auth/register`, data);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Erreur lors de l\'inscription');
+    }
+
+    const serverData = response.data.data;
+    const user: User = {
+      id: serverData.user.id,
+      email: serverData.user.email,
+      nom: serverData.user.nom,
+      prenom: serverData.user.prenom,
+      role: serverData.user.role as User['role'],
+      typeCompte: serverData.user.typeCompte || 'entreprise',
+      status: 'active',
+      telephone: data.telephone,
+      entrepriseId: serverData.user.entrepriseId
+    };
+
+    return { user };
   } catch (error) {
+    console.error('Erreur lors de l\'inscription:', error);
     throw error;
   }
 };
 
-export const getCurrentUser = async (): Promise<User> => {
+export const logout = async (): Promise<void> => {
+  try { localStorage.removeItem('user'); } catch {}
+  return;
+};
+
+export const getCurrentUser = () => {
   try {
-    const response = await axios.get(`${API_URL}/auth/me`);
-    return response.data;
-  } catch (error) {
-    throw error;
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (e) {
+    return null;
   }
-};
-
-export const logout = () => {
-  localStorage.removeItem('token');
-  delete axios.defaults.headers.common['Authorization'];
 };

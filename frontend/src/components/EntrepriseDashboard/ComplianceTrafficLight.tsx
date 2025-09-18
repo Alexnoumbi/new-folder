@@ -13,22 +13,22 @@ interface ComplianceTrafficLightProps {
 }
 
 const Light = styled(Box)<{ color: string }>(({ theme, color }) => ({
-  width: 60,
-  height: 60,
+  width: 44,
+  height: 44,
   borderRadius: '50%',
   backgroundColor: color,
   opacity: 0.3,
   transition: 'opacity 0.3s ease',
   '&.active': {
     opacity: 1,
-    boxShadow: `0 0 20px ${color}`
+    boxShadow: `0 0 14px ${color}`
   }
 }));
 
 const StatusWrapper = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(3)
+  gap: theme.spacing(2)
 }));
 
 const ComplianceTrafficLight: React.FC<ComplianceTrafficLightProps> = ({ status, details }) => {
@@ -41,32 +41,33 @@ const ComplianceTrafficLight: React.FC<ComplianceTrafficLightProps> = ({ status,
         };
       case 'yellow':
         return {
-          color: '#ff9800',
-          label: 'Partiellement Conforme'
+          color: '#ffb300',
+          label: 'À améliorer'
         };
       case 'red':
         return {
           color: '#f44336',
-          label: 'Non Conforme'
+          label: 'Non conforme'
         };
       default:
         return {
           color: '#9e9e9e',
-          label: 'Statut Inconnu'
+          label: 'Statut inconnu'
         };
     }
   };
 
   const config = getStatusConfig();
-  const progress = details ? (details.validDocuments / details.requiredDocuments) * 100 : 0;
+  const progress = details && details.requiredDocuments > 0
+    ? (details.validDocuments / details.requiredDocuments) * 100
+    : 0;
 
   return (
     <StatusWrapper>
       <Tooltip
         title={
           details ?
-          `Documents valides: ${details.validDocuments}/${details.requiredDocuments}
-           Dernière mise à jour: ${new Date(details.lastUpdated).toLocaleDateString('fr-FR')}` :
+          `Documents valides: ${details.validDocuments}/${details.requiredDocuments}\nDernière mise à jour: ${new Date(details.lastUpdated).toLocaleDateString('fr-FR')}` :
           config.label
         }
       >
@@ -75,13 +76,13 @@ const ComplianceTrafficLight: React.FC<ComplianceTrafficLightProps> = ({ status,
           {details && (
             <CircularProgress
               variant="determinate"
-              value={progress}
+              value={Math.min(100, Math.max(0, progress))}
               sx={{
                 position: 'absolute',
-                left: -4,
-                top: -4,
-                width: '68px !important',
-                height: '68px !important',
+                left: -3,
+                top: -3,
+                width: '50px !important',
+                height: '50px !important',
                 color: config.color
               }}
             />
@@ -90,12 +91,12 @@ const ComplianceTrafficLight: React.FC<ComplianceTrafficLightProps> = ({ status,
       </Tooltip>
 
       <Box>
-        <Typography variant="h6" component="div">
+        <Typography variant="subtitle1" component="div" sx={{ fontWeight: 600 }}>
           {config.label}
         </Typography>
         {details && (
-          <Typography variant="body2" color="text.secondary">
-            {details.validDocuments} sur {details.requiredDocuments} documents validés
+          <Typography variant="caption" color="text.secondary">
+            {details.validDocuments} / {details.requiredDocuments} documents validés
           </Typography>
         )}
       </Box>

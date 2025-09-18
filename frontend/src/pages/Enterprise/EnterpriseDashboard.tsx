@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import {
   Business,
   Assessment,
@@ -18,46 +18,73 @@ import ComplianceTrafficLight from '../../components/EntrepriseDashboard/Complia
 import KPIWidget from '../../components/EntrepriseDashboard/KPIWidget';
 import VisitsCalendar from '../../components/EntrepriseDashboard/VisitsCalendar';
 import DocumentsGallery from '../../components/Documents/DocumentsGallery';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { loadEnterpriseDashboard } from '../../services/authService';
 
 const EnterpriseDashboard: React.FC = () => {
   const [stats, setStats] = useState<EntrepriseStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const loadDashboard = async () => {
       try {
-        setLoading(true);
-        const data = await getEntrepriseStats();
-        setStats(data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Erreur lors du chargement des statistiques');
+        const storedDashboard = localStorage.getItem('enterpriseDashboard');
+        if (storedDashboard) {
+          setStats(JSON.parse(storedDashboard));
+          setLoading(false);
+          return;
+        }
+        if (user && user.typeCompte === 'entreprise') {
+          const data = await loadEnterpriseDashboard(user);
+          if (data?.dashboard) {
+            setStats(data.dashboard);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+        setError('Erreur lors du chargement des données');
       } finally {
         setLoading(false);
       }
     };
+    loadDashboard();
+  }, [user]);
 
-    fetchStats();
-  }, []);
+  if (!user || user.typeCompte !== 'entreprise') {
+    return <Navigate to="/login" replace />;
+  }
 
-  if (error) {
+  if (loading) {
     return (
-      <Box>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-          Tableau de bord Entreprise
-        </Typography>
-        <Alert severity="error">{error}</Alert>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
       </Box>
     );
   }
 
-  // Données pour les graphiques
-  const kpiData = [
-    { label: 'Q1', value: 85, color: '#4caf50' },
-    { label: 'Q2', value: 92, color: '#2196f3' },
-    { label: 'Q3', value: 78, color: '#ff9800' },
-    { label: 'Q4', value: 95, color: '#9c27b0' }
-  ];
+  if (error) {
+    return (
+      <Alert severity="error" action={
+        <Button color="inherit" size="small" onClick={() => window.location.reload()}>
+          RÉESSAYER
+        </Button>
+      }>
+        {error}
+      </Alert>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <Alert severity="warning">
+        Aucune donnée disponible. Veuillez contacter l'administrateur.
+      </Alert>
+    );
+  }
 
   const documentData = [
     { label: 'Validés', value: stats?.documentsSoumis || 0, color: '#4caf50' },
@@ -84,25 +111,16 @@ const EnterpriseDashboard: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        Tableau de bord Entreprise
-      </Typography>
-
-      {/* Cartes de statut principal */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-        gap: 3, 
-        mb: 4 
-      }}>
-        <ArgonCard
-          title="Statut de Conformité"
-          value=""
-          icon={<CheckCircle />}
-          color="success"
-          gradient={true}
-        />
-        <Box sx={{ mt: 2, p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Tableau de bord Entreprise
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Vue d'ensemble de vos indicateurs, documents et visites
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <ComplianceTrafficLight 
             status={stats?.statutConformite || 'yellow'} 
             details={{
@@ -113,7 +131,21 @@ const EnterpriseDashboard: React.FC = () => {
             }}
           />
         </Box>
-        
+      </Box>
+
+      {/* Cartes de statut principal */}
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, 
+        gap: 2, 
+        mb: 3 
+      }}>
+        <ArgonCard
+          title="Statut de Conformité"
+          value=""
+          icon={<CheckCircle />}
+          color="success"
+        />
         <ArgonCard
           title="Score Global"
           value={`${stats?.scoreGlobal || 0}/100`}
@@ -121,10 +153,16 @@ const EnterpriseDashboard: React.FC = () => {
           color="primary"
           subtitle={`${stats?.kpiValides || 0}/${stats?.totalKpis || 0} KPI validés`}
         />
+        <ArgonCard
+          title="Documents Requis"
+          value={`${stats?.documentsSoumis || 0}/${stats?.documentsRequis || 0}`}
+          icon={<Description />}
+          color="info"
+        />
       </Box>
 
       {/* Métriques de performance */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <ArgonPerformanceWidget
           title="Performance Générale"
           data={performanceData}
@@ -132,105 +170,14 @@ const EnterpriseDashboard: React.FC = () => {
         />
       </Box>
 
-      {/* Graphiques et calendrier */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-        gap: 3, 
-        mb: 4 
-      }}>
-        <ArgonChartWidget
-          title="Évolution des KPI"
-          data={kpiData}
-          type="bar"
-          height={300}
-        />
-        
-        <ArgonChartWidget
-          title="Statut des Documents"
-          data={documentData}
-          type="pie"
-          height={300}
-        />
-      </Box>
-
-      {/* Calendrier et documents */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-        gap: 3 
-      }}>
-        <ArgonChart
-          title="Calendrier des Visites"
-          icon={<CalendarToday />}
-          height={400}
-        >
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <VisitsCalendar />
-          )}
-        </ArgonChart>
-        
-        <ArgonChart
-          title="Documents"
-          icon={<Description />}
-          height={400}
-        >
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <DocumentsGallery />
-          )}
+      {/* Calendrier */}
+      <Box sx={{ mb: 3 }}>
+        <ArgonChart title="Calendrier des Visites" icon={<CalendarToday />} height={720}>
+          <VisitsCalendar />
         </ArgonChart>
       </Box>
 
-      {/* Statistiques détaillées */}
-      {stats && !loading && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-            Statistiques Détaillées
-          </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
-            gap: 3 
-          }}>
-            <ArgonCard
-              title="Documents Soumis"
-              value={`${stats.documentsSoumis}/${stats.documentsRequis}`}
-              icon={<Description />}
-              color="primary"
-              subtitle={`${stats.documentsRequis > 0 ? Math.round((stats.documentsSoumis / stats.documentsRequis) * 100) : 0}% complété`}
-            />
-            <ArgonCard
-              title="Visites Planifiées"
-              value={stats.visitesPlanifiees}
-              icon={<CalendarToday />}
-              color="warning"
-              subtitle="En attente"
-            />
-            <ArgonCard
-              title="Visites Terminées"
-              value={stats.visitesTerminees}
-              icon={<CheckCircle />}
-              color="success"
-              subtitle="Complétées"
-            />
-            <ArgonCard
-              title="Points de Données"
-              value={stats.evolutionKpis?.length || 0}
-              icon={<Assessment />}
-              color="info"
-              subtitle="KPI disponibles"
-            />
-          </Box>
-        </Box>
-      )}
+      {/* Documents - retiré */}
     </Box>
   );
 };

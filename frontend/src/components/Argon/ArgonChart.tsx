@@ -10,20 +10,20 @@ interface ArgonChartProps {
   icon?: React.ReactNode;
 }
 
-const StyledCard = styled(Card)<{ gradient?: boolean }>(({ theme, gradient }) => ({
+const StyledCard = styled(Card)<{ $gradient?: boolean }>(({ theme, $gradient }) => ({
   borderRadius: 16,
-  boxShadow: gradient 
+  boxShadow: $gradient 
     ? '0 4px 20px rgba(0, 0, 0, 0.1)' 
     : '0 2px 10px rgba(0, 0, 0, 0.08)',
   border: '1px solid rgba(255, 255, 255, 0.2)',
-  background: gradient 
+  background: $gradient 
     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     : '#ffffff',
-  color: gradient ? '#ffffff' : 'inherit',
+  color: $gradient ? '#ffffff' : 'inherit',
   transition: 'all 0.3s ease',
   '&:hover': {
     transform: 'translateY(-2px)',
-    boxShadow: gradient 
+    boxShadow: $gradient 
       ? '0 8px 30px rgba(0, 0, 0, 0.15)' 
       : '0 4px 20px rgba(0, 0, 0, 0.12)',
   },
@@ -45,7 +45,7 @@ const ArgonChart: React.FC<ArgonChartProps> = ({
   gradient = false,
   icon
 }) => (
-  <StyledCard gradient={gradient}>
+  <StyledCard $gradient={gradient}>
     <CardContent sx={{ p: 3 }}>
       <ChartHeader>
         <Typography 

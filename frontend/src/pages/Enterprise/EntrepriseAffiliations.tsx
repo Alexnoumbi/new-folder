@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Button,
   Chip,
@@ -10,38 +9,54 @@ import {
   CardContent,
   Avatar,
   Divider,
-  LinearProgress
+  LinearProgress,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   Business,
-  People,
   Assessment,
-  TrendingUp,
   Refresh,
   Add,
   Edit,
   Delete,
   CheckCircle,
   Warning,
-  Schedule
+  Schedule,
+  Search
 } from '@mui/icons-material';
-import { getAffiliations, Affiliation } from '../../services/entrepriseService';
+import { getEntrepriseAffiliations as getAffiliations, Affiliation } from '../../services/entrepriseService';
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
+import { useAuth } from '../../hooks/useAuth';
 
 const EntrepriseAffiliationsPage: React.FC = () => {
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchAffiliations();
-  }, []);
+    if (user?.entrepriseId) {
+      fetchAffiliations();
+    } else {
+      setLoading(false);
+      setError('Aucune entreprise associée à l\'utilisateur');
+    }
+  }, [user]);
 
   const fetchAffiliations = async () => {
+    const entrepriseId = user?.entrepriseId;
+    if (!entrepriseId) {
+      setError('Aucune entreprise associée à l\'utilisateur');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const data = await getAffiliations();
+      const data = await getAffiliations(entrepriseId);
       setAffiliations(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des affiliations');
@@ -57,13 +72,6 @@ const EntrepriseAffiliationsPage: React.FC = () => {
 
   const headerActions = [
     {
-      label: 'Nouvelle Affiliation',
-      icon: <Add />,
-      onClick: () => console.log('Nouvelle affiliation'),
-      variant: 'contained' as const,
-      color: 'primary' as const
-    },
-    {
       label: 'Actualiser',
       icon: <Refresh />,
       onClick: fetchAffiliations,
@@ -73,34 +81,39 @@ const EntrepriseAffiliationsPage: React.FC = () => {
   ];
 
   // Statistiques des affiliations
+  const filtered = affiliations.filter(a =>
+    a.partnerName?.toLowerCase().includes(search.toLowerCase()) ||
+    a.type?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const affiliationStats = [
     {
       title: 'Total Affiliations',
-      value: affiliations.length,
+      value: filtered.length,
       icon: <Business />,
       color: 'primary' as const,
-      change: '+2'
+      change: ''
     },
     {
       title: 'Actives',
-      value: affiliations.filter(a => a.status === 'active').length,
+      value: filtered.filter(a => a.status === 'active').length,
       icon: <CheckCircle />,
       color: 'success' as const,
-      change: '+1'
+      change: ''
     },
     {
       title: 'En Attente',
-      value: affiliations.filter(a => a.status === 'pending').length,
+      value: filtered.filter(a => a.status === 'pending').length,
       icon: <Schedule />,
       color: 'warning' as const,
-      change: '+1'
+      change: ''
     },
     {
       title: 'Score Moyen',
-      value: `${Math.round(affiliations.reduce((acc, a) => acc + (a.score || 0), 0) / affiliations.length) || 0}/100`,
+      value: `${Math.round(filtered.reduce((acc, a) => acc + (a.score || 0), 0) / (filtered.length || 1))}/100`,
       icon: <Assessment />,
       color: 'info' as const,
-      change: '+5%'
+      change: ''
     }
   ];
 
@@ -147,6 +160,22 @@ const EntrepriseAffiliationsPage: React.FC = () => {
         loading={loading}
       />
 
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Rechercher par nom ou type..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search />
+              </InputAdornment>
+            )
+          }}
+        />
+      </Box>
+
       {/* Statistiques des affiliations */}
       <Box sx={{ 
         display: 'grid', 
@@ -182,8 +211,8 @@ const EntrepriseAffiliationsPage: React.FC = () => {
               loading={true}
             />
           ))
-        ) : affiliations.length > 0 ? (
-          affiliations.map((affiliation, index) => (
+        ) : filtered.length > 0 ? (
+          filtered.map((affiliation, index) => (
             <Card
               key={index}
               sx={{
@@ -248,7 +277,7 @@ const EntrepriseAffiliationsPage: React.FC = () => {
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       Début
@@ -268,41 +297,13 @@ const EntrepriseAffiliationsPage: React.FC = () => {
                 </Box>
 
                 {affiliation.description && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
                     {affiliation.description.length > 100 
                       ? `${affiliation.description.substring(0, 100)}...`
                       : affiliation.description
                     }
                   </Typography>
                 )}
-
-                <Divider sx={{ my: 2 }} />
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      size="small"
-                      startIcon={<Edit />}
-                      onClick={() => console.log('Modifier affiliation:', affiliation.id)}
-                      variant="outlined"
-                      color="primary"
-                    >
-                      Modifier
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<Delete />}
-                      onClick={() => console.log('Supprimer affiliation:', affiliation.id)}
-                      variant="outlined"
-                      color="error"
-                    >
-                      Supprimer
-                    </Button>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    ID: {affiliation.id}
-                  </Typography>
-                </Box>
               </CardContent>
             </Card>
           ))
@@ -316,16 +317,9 @@ const EntrepriseAffiliationsPage: React.FC = () => {
             <Typography variant="h6" color="text.secondary" gutterBottom>
               Aucune affiliation trouvée
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Commencez par créer votre première affiliation d'entreprise
+            <Typography variant="body2" color="text.secondary">
+              Ajustez votre recherche pour affiner les résultats
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => console.log('Créer première affiliation')}
-            >
-              Créer une Affiliation
-            </Button>
           </Box>
         )}
       </Box>
@@ -334,4 +328,3 @@ const EntrepriseAffiliationsPage: React.FC = () => {
 };
 
 export default EntrepriseAffiliationsPage;
-

@@ -4,12 +4,9 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Button,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Avatar,
   Divider
 } from '@mui/material';
@@ -20,35 +17,108 @@ import {
   Phone,
   Email,
   Web,
-  Description,
   People,
   Assessment,
   TrendingUp,
   CheckCircle,
-  Warning,
-  Refresh,
-  Settings
+  Refresh
 } from '@mui/icons-material';
-import { getEntrepriseDetails, updateEntreprise, Entreprise } from '../../services/entrepriseService';
+import { getEntreprise as getEntrepriseDetails, updateEntreprise, Entreprise } from '../../services/entrepriseService';
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonForm from '../../components/Argon/ArgonForm';
 import ArgonChartWidget from '../../components/Argon/ArgonChartWidget';
+import { FormField } from '../../types/form';
+import { useAuth } from '../../hooks/useAuth';
 
 const MonEntreprise: React.FC = () => {
   const [entreprise, setEntreprise] = useState<Entreprise | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const { user } = useAuth();
+
+  // Chart data
+  const performanceData = [
+    { label: 'Jan', value: 85, color: '#4caf50' },
+    { label: 'Fév', value: 92, color: '#2196f3' },
+    { label: 'Mar', value: 78, color: '#ff9800' },
+    { label: 'Avr', value: 95, color: '#9c27b0' },
+    { label: 'Mai', value: 88, color: '#f44336' },
+    { label: 'Jun', value: 91, color: '#00bcd4' }
+  ];
+
+  const complianceData = [
+    { label: 'Conforme', value: 75, color: '#4caf50' },
+    { label: 'En cours', value: 20, color: '#ff9800' },
+    { label: 'Non conforme', value: 5, color: '#f44336' }
+  ];
+
+  // Form fields definition with correct type literals
+  const formFields: FormField[] = [
+    {
+      name: 'name',
+      label: 'Nom de l\'entreprise',
+      type: 'text' as const,
+      required: true,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'address',
+      label: 'Adresse',
+      type: 'textarea' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'phone',
+      label: 'Téléphone',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'email',
+      label: 'Email',
+      type: 'email' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'website',
+      label: 'Site web',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'sector',
+      label: 'Secteur d\'activité',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea' as const,
+      xs: 12
+    }
+  ];
 
   useEffect(() => {
-    fetchEntrepriseDetails();
-  }, []);
+    if (user?.entreprise) {
+      fetchEntrepriseDetails();
+    }
+  }, [user]);
 
   const fetchEntrepriseDetails = async () => {
+    if (!user?.entreprise) return;
+
     try {
       setLoading(true);
-      const data = await getEntrepriseDetails();
+      const data = await getEntrepriseDetails(user.entreprise);
       setEntreprise(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des détails de l\'entreprise');
@@ -57,13 +127,19 @@ const MonEntreprise: React.FC = () => {
     }
   };
 
-  const handleUpdateEntreprise = async (formData: any) => {
+  const handleUpdateEntreprise = async (formData: Partial<Entreprise>) => {
+    if (!user?.entreprise) return;
+
     try {
-      await updateEntreprise(entreprise?.id || '', formData);
-      await fetchEntrepriseDetails();
+      setLoading(true);
+      const updatedEntreprise = await updateEntreprise(user.entreprise, formData);
+      setEntreprise(updatedEntreprise);
       setOpenEditDialog(false);
     } catch (err: any) {
+      console.error('Erreur lors de la mise à jour:', err);
       setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,40 +165,15 @@ const MonEntreprise: React.FC = () => {
     }
   ];
 
-  const formFields = [
-    { name: 'name', label: 'Nom de l\'entreprise', required: true, xs: 12, md: 6 },
-    { name: 'address', label: 'Adresse', type: 'textarea' as const, xs: 12, md: 6 },
-    { name: 'phone', label: 'Téléphone', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'email', label: 'Email', type: 'email' as const, xs: 12, md: 6 },
-    { name: 'website', label: 'Site web', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'sector', label: 'Secteur d\'activité', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'description', label: 'Description', type: 'textarea' as const, xs: 12 },
-  ];
 
-  // Données pour les graphiques
-  const performanceData = [
-    { label: 'Jan', value: 85, color: '#4caf50' },
-    { label: 'Fév', value: 92, color: '#2196f3' },
-    { label: 'Mar', value: 78, color: '#ff9800' },
-    { label: 'Avr', value: 95, color: '#9c27b0' },
-    { label: 'Mai', value: 88, color: '#f44336' },
-    { label: 'Jun', value: 91, color: '#00bcd4' }
-  ];
-
-  const complianceData = [
-    { label: 'Conforme', value: 75, color: '#4caf50' },
-    { label: 'En cours', value: 20, color: '#ff9800' },
-    { label: 'Non conforme', value: 5, color: '#f44336' }
-  ];
-
-  // Statistiques de l'entreprise
+  // Statistiques de l'entreprise with proper null checks
   const entrepriseStats = [
     {
       title: 'Score Global',
-      value: `${entreprise?.scoreGlobal || 0}/100`,
+      value: `${entreprise?.kpiScore || 0}/100`,
       icon: <Assessment />,
-      color: (entreprise?.scoreGlobal && entreprise.scoreGlobal >= 80 ? 'success' : 
-            entreprise?.scoreGlobal && entreprise.scoreGlobal >= 60 ? 'warning' : 'error') as 'success' | 'warning' | 'error',
+      color: (entreprise?.kpiScore && entreprise.kpiScore >= 80 ? 'success' :
+             entreprise?.kpiScore && entreprise.kpiScore >= 60 ? 'warning' : 'error') as 'success' | 'warning' | 'error',
       change: '+5%'
     },
     {
@@ -292,7 +343,7 @@ const MonEntreprise: React.FC = () => {
                 Score Global
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
-                {entreprise?.scoreGlobal || 0}/100
+                {entreprise?.kpiScore || 0}/100
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>

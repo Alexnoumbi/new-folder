@@ -1,18 +1,5 @@
 import api from './api';
-
-export interface AuditLog {
-  _id: string;
-  userId: string;
-  action: string;
-  resourceType: string;
-  resourceId: string;
-  details: any;
-  timestamp: string;
-  userDetails?: {
-    name: string;
-    email: string;
-  };
-}
+import { AuditLog } from '../types/audit.types';
 
 export interface AuditLogFilters {
   startDate?: string;
@@ -21,17 +8,39 @@ export interface AuditLogFilters {
 }
 
 export const getAuditLogs = async (filters?: AuditLogFilters): Promise<AuditLog[]> => {
-  const response = await api.get('/admin/audit-logs', { params: filters });
-  return response.data;
+  try {
+    const response = await api.get('/admin/audit/logs', {
+      params: filters,
+      timeout: 10000
+    });
+    const payload = response.data;
+    const items = Array.isArray(payload) ? payload : (payload?.data ?? []);
+    return items.map((log: any) => ({
+      ...log,
+      user: log.userDetails
+    }));
+  } catch (error: any) {
+    console.error('Erreur lors de la récupération des logs d\'audit:', error);
+    throw new Error(error.response?.data?.message || 'Erreur lors de la récupération des logs d\'audit');
+  }
 };
 
 export const getAuditLogDetails = async (logId: string): Promise<AuditLog> => {
-  const response = await api.get(`/admin/audit-logs/${logId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/admin/audit/logs/${logId}`);
+    const payload = response.data?.data ?? response.data;
+    return {
+      ...payload,
+      user: payload?.userDetails
+    };
+  } catch (error: any) {
+    console.error('Erreur lors de la récupération du détail du log:', error);
+    throw new Error(error.response?.data?.message || 'Erreur lors de la récupération du détail du log');
+  }
 };
 
 export const exportAuditLogs = async (filters?: AuditLogFilters): Promise<Blob> => {
-  const response = await api.get('/admin/audit-logs/export', {
+  const response = await api.get('/admin/audit/logs/export', {
     params: filters,
     responseType: 'blob'
   });

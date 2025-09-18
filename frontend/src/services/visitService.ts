@@ -49,6 +49,23 @@ const visitService = {
     return response.data;
   },
 
+  submitVisitReport: async (
+    visitId: string,
+    payload: {
+      content: string;
+      outcome: Visit['report'] extends infer R
+        ? R extends { outcome: infer O }
+          ? O
+          : 'COMPLIANT' | 'NON_COMPLIANT' | 'NEEDS_FOLLOW_UP'
+        : 'COMPLIANT' | 'NON_COMPLIANT' | 'NEEDS_FOLLOW_UP';
+      reporterName?: string;
+      enterpriseData?: any;
+    }
+  ): Promise<Visit> => {
+    const response = await api.post(`/visites/${visitId}/report`, payload);
+    return response.data;
+  },
+
   getUpcomingVisits: async (enterpriseId: string): Promise<Visit[]> => {
     const response = await api.get(`/visites/enterprise/${enterpriseId}/upcoming`);
     return response.data;

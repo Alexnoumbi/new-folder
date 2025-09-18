@@ -49,26 +49,33 @@ export interface BackupStatus {
   } | null;
 }
 
+// Monitoring API functions
 export const getSystemStats = async (): Promise<SystemStats> => {
-  // Stub returning safe defaults and legacy fields
-  return {
-    cpuUsage: 0,
-    memoryUsage: 0,
-    diskUsage: 0,
-    networkIO: 0,
-    cpuTrend: '0%',
-    memoryTrend: '0%',
-    diskTrend: '0%',
-    securityAlerts: 0,
-    securityTrend: '0',
-    system: {
-      cpu: 0,
-      memory: { used: 0, free: 0, total: 1 },
-      disk: { used: 0, free: 0, total: 1 },
-    },
-    requests: { averageResponseTime: 0, perMinute: 0 },
-    uptime: 0,
-  };
+  const { data } = await api.get('/system/stats');
+  return data;
+};
+
+export const getStorageStats = async (): Promise<StorageStats> => {
+  const { data } = await api.get('/system/storage');
+  return data;
+};
+
+export const getSecurityAlerts = async (): Promise<SecurityAlert[]> => {
+  const { data } = await api.get('/system/security/alerts');
+  return data;
+};
+
+export const resolveSecurityAlert = async (alertId: string): Promise<void> => {
+  await api.put(`/system/security/alerts/${alertId}/resolve`);
+};
+
+export const getBackupStatus = async (): Promise<BackupStatus> => {
+  const { data } = await api.get('/system/backups');
+  return data;
+};
+
+export const initiateBackup = async (): Promise<void> => {
+  await api.post('/system/backups');
 };
 
 const monitoringService = {

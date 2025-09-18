@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
 } from '@mui/material';
 import {
   Business,
@@ -18,58 +17,85 @@ import {
   Email,
   Web,
   Description,
-  People,
-  Assessment,
-  TrendingUp
+  Assessment
 } from '@mui/icons-material';
-import { getEntrepriseDetails, Entreprise } from '../../services/entrepriseService';
+import { getEntreprise as getEntrepriseDetails, updateEntreprise, Entreprise } from '../../services/entrepriseService';
+import { FormField } from '../../types/form';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonForm from '../../components/Argon/ArgonForm';
 import ArgonChartWidget from '../../components/Argon/ArgonChartWidget';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const EntrepriseOverview: React.FC = () => {
   const [entreprise, setEntreprise] = useState<Entreprise | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchEntrepriseDetails();
-  }, []);
-
-  const fetchEntrepriseDetails = async () => {
-    try {
-      setLoading(true);
-      const data = await getEntrepriseDetails();
-      setEntreprise(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du chargement des détails de l\'entreprise');
-    } finally {
-      setLoading(false);
+  // Form fields definition with correct types
+  const formFields: FormField[] = [
+    {
+      name: 'name',
+      label: 'Nom de l\'entreprise',
+      type: 'text' as const,
+      required: true,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'address',
+      label: 'Adresse',
+      type: 'textarea' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'phone',
+      label: 'Téléphone',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'email',
+      label: 'Email',
+      type: 'email' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'website',
+      label: 'Site web',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'sector',
+      label: 'Secteur d\'activité',
+      type: 'text' as const,
+      xs: 12,
+      md: 6
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea' as const,
+      xs: 12
+    },
+    {
+      name: 'employees',
+      label: 'Nombre d\'employés',
+      type: 'number' as const,
+      xs: 12,
+      md: 6
     }
-  };
-
-  const handleUpdateEntreprise = async (formData: any) => {
-    try {
-      // Logique de mise à jour
-      console.log('Mise à jour entreprise:', formData);
-      setOpenEditDialog(false);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
-    }
-  };
-
-  const formFields = [
-    { name: 'name', label: 'Nom de l\'entreprise', required: true, xs: 12, md: 6 },
-    { name: 'address', label: 'Adresse', type: 'textarea' as const, xs: 12, md: 6 },
-    { name: 'phone', label: 'Téléphone', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'email', label: 'Email', type: 'email' as const, xs: 12, md: 6 },
-    { name: 'website', label: 'Site web', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'sector', label: 'Secteur d\'activité', type: 'text' as const, xs: 12, md: 6 },
-    { name: 'description', label: 'Description', type: 'textarea' as const, xs: 12 },
   ];
 
-  // Données de démonstration pour les graphiques
+  // Performance data
   const performanceData = [
     { label: 'Jan', value: 85, color: '#4caf50' },
     { label: 'Fév', value: 92, color: '#2196f3' },
@@ -79,19 +105,93 @@ const EntrepriseOverview: React.FC = () => {
     { label: 'Jun', value: 91, color: '#00bcd4' }
   ];
 
+  // Compliance data
   const complianceData = [
     { label: 'Conforme', value: 75, color: '#4caf50' },
     { label: 'En cours', value: 20, color: '#ff9800' },
     { label: 'Non conforme', value: 5, color: '#f44336' }
   ];
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (user.typeCompte !== 'entreprise') {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // Check if user has an associated enterprise
+    if (!user.entrepriseId) {
+      setError('Aucune entreprise associée à votre compte. Veuillez contacter l\'administrateur.');
+      setLoading(false);
+      return;
+    }
+
+    const fetchEntrepriseDetails = async () => {
+      try {
+        const data = await getEntrepriseDetails(user.entrepriseId!);
+        setEntreprise(data);
+        setError(null);
+      } catch (err: any) {
+        console.error('Erreur lors du chargement des détails:', err);
+        if (err.response?.status === 404) {
+          setError('Entreprise non trouvée. Veuillez contacter l\'administrateur.');
+        } else {
+          setError(err.response?.data?.message || 'Erreur lors du chargement des détails de l\'entreprise');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEntrepriseDetails();
+  }, [user, navigate]);
+
+  const handleUpdateEntreprise = async (formData: Partial<Entreprise>) => {
+    if (!user?.entrepriseId) return;
+
+    try {
+      setLoading(true);
+      const updatedEntreprise = await updateEntreprise(user.entrepriseId, formData);
+      setEntreprise(updatedEntreprise);
+      setOpenEditDialog(false);
+      // Show success message
+    } catch (err: any) {
+      console.error('Erreur lors de la mise à jour:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la mise à jour de l\'entreprise');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   if (error) {
     return (
-      <Box>
+      <Box sx={{ p: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
           Aperçu de l'Entreprise
         </Typography>
-        <Alert severity="error">{error}</Alert>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => navigate('/') }>
+              Retour à l'accueil
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     );
   }
@@ -102,19 +202,6 @@ const EntrepriseOverview: React.FC = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
           Aperçu de l'Entreprise
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Edit />}
-          onClick={() => setOpenEditDialog(true)}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-            },
-          }}
-        >
-          Modifier
-        </Button>
       </Box>
 
       {/* Informations générales */}

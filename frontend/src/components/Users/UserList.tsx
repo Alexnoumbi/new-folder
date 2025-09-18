@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -7,59 +7,55 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton,
+  IconButton
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, deleteUser } from '../../store/slices/userSlice';
-import { RootState, AppDispatch } from '../../store/store';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
+import type { User } from '../../types/user.types';
 
-const UserList = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { users, loading, error } = useSelector((state: RootState) => state.users);
+interface UserListProps {
+  users: User[];
+  onEdit?: (user: User) => void;
+  onDelete?: (userId: string) => void;
+}
 
-  useEffect(() => {
-    dispatch(fetchUsers());
-  }, [dispatch]);
-
-  const handleDelete = (userId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      dispatch(deleteUser(userId));
-    }
-  };
-
-  if (loading) return <div>Chargement...</div>;
-  if (error) return <div>Erreur: {error}</div>;
-
+const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete }) => {
   return (
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Nom</TableCell>
+            <TableCell>Nom complet</TableCell>
             <TableCell>Email</TableCell>
-            <TableCell>Role</TableCell>
+            <TableCell>Rôle</TableCell>
+            <TableCell>Type de compte</TableCell>
             <TableCell>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user._id}>
+            <TableRow key={user.id}>
               <TableCell>{`${user.nom} ${user.prenom}`}</TableCell>
               <TableCell>{user.email}</TableCell>
+              <TableCell>{user.role}</TableCell>
               <TableCell>{user.typeCompte}</TableCell>
               <TableCell>
-                <IconButton color="primary" aria-label="modifier">
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  color="error"
-                  aria-label="supprimer"
-                  onClick={() => handleDelete(user._id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                {onEdit && (
+                  <IconButton size="small" onClick={() => onEdit(user)}>
+                    <EditIcon />
+                  </IconButton>
+                )}
+                {onDelete && (
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => onDelete(user.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
               </TableCell>
             </TableRow>
           ))}

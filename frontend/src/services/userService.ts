@@ -1,55 +1,45 @@
 import api from './api';
-import type { User } from '../types/auth.types';
+import type { User, UserCreateData, UserUpdateData } from '../types/user.types';
 
-export interface UserProfile extends User {
-  settings?: {
-    notifications: boolean;
-    theme: 'light' | 'dark';
-    language: string;
-  };
-}
+export type { User, UserCreateData, UserUpdateData };
 
-export type UserCreateData = Omit<User, '_id'>;
-export type UserUpdateData = Partial<User>;
+// User management functions
+export const getUsers = async (search?: string, role?: string, typeCompte?: string): Promise<User[]> => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (role) params.append('role', role);
+    if (typeCompte) params.append('typeCompte', typeCompte);
 
-export const getUsers = async (): Promise<User[]> => {
-  const response = await api.get('/admin/users');
-  return response.data;
+    const response = await api.get(`/users?${params.toString()}`);
+    return response.data;
 };
 
-export const createUser = async (data: UserCreateData): Promise<User> => {
-  const response = await api.post('/admin/users', data);
-  return response.data;
+export const getUserById = async (id: string): Promise<User> => {
+    const response = await api.get(`/users/${id}`);
+    return response.data;
 };
 
-export const updateUser = async (id: string, data: UserUpdateData): Promise<User> => {
-  const response = await api.put(`/admin/users/${id}`, data);
-  return response.data;
+export const createUser = async (userData: UserCreateData): Promise<User> => {
+    const response = await api.post('/users', userData);
+    return response.data;
 };
 
-export const deleteUser = async (id: string): Promise<void> => {
-  await api.delete(`/admin/users/${id}`);
+export const updateUser = async (id: string, userData: UserUpdateData): Promise<User> => {
+    const response = await api.put(`/users/${id}`, userData);
+    return response.data;
 };
 
-export const getUserProfile = async (userId?: string): Promise<UserProfile> => {
-  const path = userId ? `/users/${userId}/profile` : '/users/profile';
-  const response = await api.get(path);
-  return response.data;
+export const deleteUser = async (id: string): Promise<{ message: string }> => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
 };
 
-export const updateUserProfile = async (userId: string | undefined, data: Partial<UserProfile>): Promise<UserProfile> => {
-  const path = userId ? `/users/${userId}/profile` : '/users/profile';
-  const response = await api.put(path, data);
-  return response.data;
+const userService = {
+    getUsers,
+    getUserById,
+    createUser,
+    updateUser,
+    deleteUser
 };
 
-export type { User }; // Re-export User type
-
-export default {
-  getUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  getUserProfile,
-  updateUserProfile
-};
+export default userService;

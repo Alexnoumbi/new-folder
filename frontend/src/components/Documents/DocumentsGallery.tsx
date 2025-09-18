@@ -15,6 +15,7 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useDropzone } from 'react-dropzone';
+import documentService, { Document as DocType } from '../../services/documentService';
 
 interface Document {
   id: string;
@@ -42,17 +43,15 @@ const statusLabels = {
 };
 
 const DocumentsGallery: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<DocType | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadDocuments = async () => {
       try {
-        // TODO: Replace with actual API call
-        const response = await fetch('/api/documents');
-        const data = await response.json();
+        const data = await documentService.getDocuments();
         setDocuments(data);
       } catch (error) {
         console.error('Error loading documents:', error);
@@ -66,7 +65,6 @@ const DocumentsGallery: React.FC = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
-      // Handle file upload
       console.log(acceptedFiles);
     }
   });
@@ -79,13 +77,13 @@ const DocumentsGallery: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
         {documents.map((doc) => (
-          <Box key={doc.id}>
+          <Box key={(doc as any)._id || (doc as any).id}>
             <Paper sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6">{doc.type}</Typography>
                 <Chip
-                  label={statusLabels[doc.status]}
-                  color={statusColors[doc.status] as any}
+                  label={statusLabels[doc.status as keyof typeof statusLabels]}
+                  color={statusColors[doc.status as keyof typeof statusColors] as any}
                   size="small"
                 />
               </Box>
@@ -95,13 +93,13 @@ const DocumentsGallery: React.FC = () => {
                   variant="contained"
                   startIcon={<CloudUploadIcon />}
                   onClick={() => {
-                    setSelectedDoc(doc);
+                    setSelectedDoc(doc as any);
                     setUploadDialogOpen(true);
                   }}
                 >
                   Upload
                 </Button>
-                {doc.files.length > 0 && (
+                {doc.files?.length > 0 && (
                   <IconButton
                     onClick={() => {/* Handle view */}}
                   >

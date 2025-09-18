@@ -28,6 +28,9 @@ interface ArgonTableProps {
   columns: Column[];
   data: any[];
   loading?: boolean;
+  error?: string | null;
+  emptyMessage?: string;
+  onRetry?: () => void;
   actions?: (row: any) => React.ReactNode;
   onRowClick?: (row: any) => void;
 }
@@ -180,4 +183,4 @@ const ArgonTable: React.FC<ArgonTableProps> = ({
   );
 };
 
-export default ArgonTable; 
+export default ArgonTable;

@@ -1,7 +1,8 @@
 import api from './api';
 
-export interface Enterprise {
+export interface Entreprise {
   _id: string;
+  id?: string;  // Added for compatibility
   nom: string;
   adresse: string;
   telephone: string;
@@ -10,7 +11,25 @@ export interface Enterprise {
   region: string;
   ville: string;
   dateCreation: string;
+  createdAt?: string;  // Added for frontend display
   statut: 'actif' | 'inactif' | 'suspendu';
+  // Additional fields
+  name?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  description?: string;
+  sector?: string;
+  employees?: number;
+  location?: string;
+  kpiScore?: number;
+  status?: 'active' | 'inactive' | 'pending';
+  scoreGlobal?: number;
+  documentsSoumis?: number;
+  documentsRequis?: number;
+  visitesTerminees?: number;
+  kpiValides?: number;
+  totalKpis?: number;
 }
 
 export interface EnterpriseOverview {
@@ -41,24 +60,15 @@ export interface ComplianceStatus {
 }
 
 export interface EntrepriseStats {
-  scoreGlobal: number;
-  kpiValides: number;
-  totalKpis: number;
-  documentsRequis: number;
   documentsSoumis: number;
+  documentsRequis: number;
   visitesPlanifiees: number;
   visitesTerminees: number;
-  statutConformite: 'green' | 'yellow' | 'red';
-  activiteRecente: Array<{
-    id: string;
-    type: string;
-    description: string;
-    timestamp: string;
-  }>;
-  evolutionKpis: Array<{
-    date: string;
-    score: number;
-  }>;
+  scoreGlobal: number;
+  statutConformite: 'red' | 'yellow' | 'green';
+  kpiValides: number;
+  totalKpis: number;
+  evolutionKpis?: Array<{ date: string; value: number }>;
 }
 
 export interface Control {
@@ -84,51 +94,132 @@ export interface Affiliation {
   description?: string;
 }
 
-export interface Entreprise {
-  id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  sector?: string;
-  description?: string;
-  employees?: number;
-  createdAt?: string;
-  location?: string;
-  status?: 'active' | 'inactive' | 'pending';
-  kpiScore?: number;
-  scoreGlobal?: number;
-  documentsSoumis?: number;
-  documentsRequis?: number;
-  visitesTerminees?: number;
-  kpiValides?: number;
-  totalKpis?: number;
-}
-
-export const getEntrepriseStats = async (): Promise<EntrepriseStats> => {
-  const response = await api.get('/entreprise/stats');
-  return response.data.data;
+// Fonctions CRUD principales
+export const getEntreprises = async (): Promise<Entreprise[]> => {
+  console.log('Calling getEntreprises...');
+  try {
+    const response = await api.get('/entreprises');
+    return response.data;
+  } catch (error) {
+    console.error('Error in getEntreprises:', error);
+    throw error;
+  }
 };
 
-export const getEntrepriseInfo = async () => {
-  const response = await api.get('/entreprise/me');
+export const getEntreprise = async (id: string): Promise<Entreprise> => {
+  const response = await api.get(`/entreprises/${id}`);
   return response.data;
 };
 
-// Legacy stubs to keep imports working
-export const getControls = async (): Promise<Control[]> => { throw new Error('getControls n\'est pas disponible.'); };
-export const createControl = async (): Promise<Control> => { throw new Error('createControl n\'est pas disponible.'); };
-export const updateControl = async (): Promise<Control> => { throw new Error('updateControl n\'est pas disponible.'); };
-export const deleteControl = async (): Promise<void> => { throw new Error('deleteControl n\'est pas disponible.'); };
-export const getEntrepriseDetails = async (): Promise<Entreprise> => { throw new Error('getEntrepriseDetails n\'est pas disponible.'); };
-export const getAffiliations = async (): Promise<Affiliation[]> => { throw new Error('getAffiliations n\'est pas disponible.'); };
-export const getEntreprises = async (): Promise<Entreprise[]> => { throw new Error('getEntreprises n\'est pas disponible.'); };
-export const updateEntreprise = async (_id?: string, _data?: Partial<Entreprise>): Promise<Entreprise> => { throw new Error('updateEntreprise n\'est pas disponible.'); };
+export const getEntrepriseDetails = getEntreprise;
+
+export const createEntreprise = async (data: Partial<Entreprise>): Promise<Entreprise> => {
+  const response = await api.post('/entreprises', data);
+  return response.data;
+};
+
+export const updateEntreprise = async (id: string, data: Partial<Entreprise>): Promise<Entreprise> => {
+  const response = await api.put(`/entreprises/${id}`, data);
+  return response.data;
+};
+
+export const deleteEntreprise = async (id: string): Promise<void> => {
+  await api.delete(`/entreprises/${id}`);
+};
+
+// Stats et informations
+export const getEntrepriseStats = async (entrepriseId: string): Promise<EntrepriseStats> => {
+  console.log('Calling getEntrepriseStats...');
+  try {
+    const response = await api.get(`/entreprises/${entrepriseId}/stats`);
+    console.log('Enterprise stats response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error in getEntrepriseStats:', error);
+    throw error;
+  }
+};
+
+export const getEntrepriseInfo = async (): Promise<Entreprise> => {
+  const response = await api.get('/entreprises/me');
+  return response.data;
+};
+
+export const updateEntrepriseProfile = async (data: Partial<Entreprise>): Promise<Entreprise> => {
+  const response = await api.put('/entreprises/profile', data);
+  return response.data;
+};
+
+// Ressources liées
+export const getEntrepriseDocuments = async (id: string) => {
+  const response = await api.get(`/entreprises/${id}/documents`);
+  return response.data;
+};
+
+// Alias pour la compatibilité avec le code existant
+export const getControls = async (id: string): Promise<Control[]> => {
+  return getEntrepriseControls(id);
+};
+
+export const getEntrepriseControls = async (id: string): Promise<Control[]> => {
+  const response = await api.get(`/entreprises/${id}/controls`);
+  return response.data;
+};
+
+// Alias pour la compatibilité avec le code existant
+export const getAffiliations = async (id: string): Promise<Affiliation[]> => {
+  return getEntrepriseAffiliations(id);
+};
+
+export const getEntrepriseAffiliations = async (id: string): Promise<Affiliation[]> => {
+  const response = await api.get(`/entreprises/${id}/affiliations`);
+  return response.data;
+};
+
+export interface KPIHistoryPoint {
+  date: string;
+  value: number;
+}
+
+export const getEntrepriseKPIHistory = async (id: string): Promise<KPIHistoryPoint[]> => {
+  try {
+    const response = await api.get(`/entreprises/${id}/kpi-history`);
+    console.log('KPI History response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching KPI history:', error);
+    throw error;
+  }
+};
+
+export const getEntrepriseMessages = async (id: string) => {
+  const response = await api.get(`/entreprises/${id}/messages`);
+  return response.data;
+};
+
+export const getEntrepriseReports = async (id: string) => {
+  const response = await api.get(`/entreprises/${id}/reports`);
+  return response.data;
+};
 
 const entrepriseService = {
+  getEntreprises,
+  getEntreprise,
+  getEntrepriseDetails,
+  createEntreprise,
+  updateEntreprise,
+  deleteEntreprise,
   getEntrepriseStats,
   getEntrepriseInfo,
+  updateEntrepriseProfile,
+  getEntrepriseDocuments,
+  getControls,
+  getEntrepriseControls,
+  getAffiliations,
+  getEntrepriseAffiliations,
+  getEntrepriseKPIHistory,
+  getEntrepriseMessages,
+  getEntrepriseReports,
 };
 
 export default entrepriseService;

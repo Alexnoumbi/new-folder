@@ -35,10 +35,13 @@ const BarChart = styled(Box)(({ theme }) => ({
   gap: theme.spacing(1),
 }));
 
-const Bar = styled(Box)<{ height: number; color: string }>(({ height, color }) => ({
+const Bar = styled(Box, { shouldForwardProp: (prop) => prop !== 'barHeight' && prop !== 'barColor' })<{
+  barHeight: number;
+  barColor: string;
+}>(({ barHeight, barColor }) => ({
   flex: 1,
-  height: `${height}%`,
-  backgroundColor: color,
+  height: `${barHeight}%`,
+  backgroundColor: barColor,
   borderRadius: '4px 4px 0 0',
   transition: 'all 0.3s ease',
   '&:hover': {
@@ -54,12 +57,16 @@ const PieChart = styled(Box)(({ theme }) => ({
   margin: '0 auto',
 }));
 
-const PieSlice = styled(Box)<{ startAngle: number; endAngle: number; color: string }>(({ startAngle, endAngle, color }) => ({
+const PieSlice = styled(Box, { shouldForwardProp: (prop) => prop !== 'startAngle' && prop !== 'endAngle' && prop !== 'sliceColor' })<{
+  startAngle: number;
+  endAngle: number;
+  sliceColor: string;
+}>(({ startAngle, endAngle, sliceColor }) => ({
   position: 'absolute',
   width: '100%',
   height: '100%',
   borderRadius: '50%',
-  background: `conic-gradient(from ${startAngle}deg, ${color} 0deg ${endAngle}deg, transparent ${endAngle}deg)`,
+  background: `conic-gradient(from ${startAngle}deg, ${sliceColor} 0deg ${endAngle}deg, transparent ${endAngle}deg)`,
 }));
 
 const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
@@ -76,8 +83,8 @@ const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
       {data.map((item, index) => (
         <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Bar
-            height={(item.value / maxValue) * 100}
-            color={item.color || '#667eea'}
+            barHeight={(item.value / (maxValue || 1)) * 100}
+            barColor={item.color || '#667eea'}
           />
           <Typography variant="caption" sx={{ mt: 1, textAlign: 'center' }}>
             {item.label}
@@ -89,23 +96,23 @@ const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
 
   const renderPieChart = () => {
     let currentAngle = 0;
-    
+
     return (
       <PieChart>
         {data.map((item, index) => {
-          const percentage = (item.value / totalValue) * 100;
+          const percentage = totalValue === 0 ? 0 : (item.value / totalValue) * 100;
           const sliceAngle = (percentage / 100) * 360;
           const startAngle = currentAngle;
           const endAngle = currentAngle + sliceAngle;
-          
+
           currentAngle += sliceAngle;
-          
+
           return (
             <PieSlice
               key={index}
               startAngle={startAngle}
               endAngle={endAngle}
-              color={item.color || '#667eea'}
+              sliceColor={item.color || '#667eea'}
             />
           );
         })}
@@ -120,7 +127,7 @@ const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
           <Box
             sx={{
               width: '100%',
-              height: `${(item.value / maxValue) * 100}%`,
+              height: `${(item.value / (maxValue || 1)) * 100}%`,
               backgroundColor: item.color || '#667eea',
               borderRadius: '4px 4px 0 0',
               transition: 'all 0.3s ease',
@@ -142,11 +149,11 @@ const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, textAlign: 'center' }}>
         {title}
       </Typography>
-      
+
       {type === 'bar' && renderBarChart()}
       {type === 'pie' && renderPieChart()}
       {type === 'line' && renderLineChart()}
-      
+
       <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
         {data.map((item, index) => (
           <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -168,4 +175,4 @@ const ArgonChartWidget: React.FC<ArgonChartWidgetProps> = ({
   );
 };
 
-export default ArgonChartWidget; 
+export default ArgonChartWidget;

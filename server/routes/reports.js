@@ -1,60 +1,29 @@
 const express = require('express');
-const { generateReport, getReportTypes } = require('../controllers/reportController');
-const { auth, authorize } = require('../middleware/auth');
+const {
+    generateReport,
+    getReports,
+    downloadReport,
+    deleteReport
+} = require('../controllers/reportController');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Protéger toutes les routes
-router.use(auth);
-
 // Routes des rapports
-router.post('/', authorize('admin'), generateReport);
-router.get('/types', getReportTypes);
+router.get('/', auth, getReports);
+router.post('/generate', auth, generateReport);
+router.get('/:id/download', auth, downloadReport);
+router.delete('/:id', auth, deleteReport);
 
 // Routes pour les entreprises
-router.get('/entreprise/types', authorize('entreprise'), (req, res) => {
-  const types = [
-    {
-      id: 'kpis',
-      name: 'Rapport des KPIs',
-      formats: ['pdf', 'excel']
-    },
-    {
-      id: 'documents',
-      name: 'Rapport des documents',
-      formats: ['pdf', 'excel']
-    },
-    {
-      id: 'visites',
-      name: 'Rapport des visites',
-      formats: ['pdf', 'excel']
-    }
-  ];
-
-  res.json({
-    success: true,
-    data: types
-  });
-});
-
-router.post('/entreprise/generate', authorize('entreprise'), async (req, res) => {
-  try {
-    const { type, format, dateDebut, dateFin } = req.body;
-    const userId = req.user.id;
-    
-    // Générer le rapport pour l'entreprise de l'utilisateur
-    const report = await generateReport(type, format, dateDebut, dateFin, userId);
-    
-    res.json({
-      success: true,
-      data: report
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la génération du rapport'
-    });
-  }
+router.get('/entreprise/types', auth, (req, res) => {
+    const types = [
+        { id: 'performance', name: 'Rapport de Performance' },
+        { id: 'audit', name: 'Rapport d\'Audit' },
+        { id: 'compliance', name: 'Rapport de Conformité' },
+        { id: 'visit', name: 'Rapport de Visite' }
+    ];
+    res.json(types);
 });
 
 module.exports = router;

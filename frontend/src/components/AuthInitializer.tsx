@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { CircularProgress, Box } from '@mui/material';
+import type { User } from '../types/user.types';
 
 interface AuthInitializerProps {
   children: React.ReactNode;
@@ -12,13 +13,14 @@ const AuthInitializer: React.FC<AuthInitializerProps> = ({ children }) => {
 
   useEffect(() => {
     // Créer un utilisateur par défaut sans authentification
-    const defaultUser = {
-      _id: '1',
+    const defaultUser: User = {
+      id: '1',
       nom: 'Admin',
       prenom: 'Utilisateur',
       email: 'admin@demo.com',
       typeCompte: 'admin',
-      role: 'admin'
+      role: 'admin',
+      status: 'active'
     };
     
     setUser(defaultUser);

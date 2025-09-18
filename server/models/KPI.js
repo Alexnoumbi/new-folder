@@ -1,59 +1,115 @@
 const mongoose = require('mongoose');
 
-const kpiSubmissionSchema = new mongoose.Schema({
-  value: {
-    type: Number,
-    required: true
-  },
-  date: {
-    type: Date,
-    required: true,
-    default: Date.now
-  },
-  submittedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'validated', 'rejected'],
-    default: 'pending'
-  },
-  comment: String
+const kpiHistorySchema = new mongoose.Schema({
+    value: {
+        type: Number,
+        required: true
+    },
+    comment: String,
+    submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    submittedAt: {
+        type: Date,
+        default: Date.now
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'validated', 'rejected'],
+        default: 'pending'
+    },
+    validatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    validatedAt: Date,
+    validationComment: String
 });
 
 const kpiSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  description: String,
-  targetValue: {
-    type: Number,
-    required: true
-  },
-  unit: {
-    type: String,
-    required: true
-  },
-  frequency: {
-    type: String,
-    enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'],
-    required: true
-  },
-  enterpriseId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Entreprise',
-    required: true
-  },
-  history: [kpiSubmissionSchema]
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        trim: true
+    },
+    type: {
+        type: String,
+        enum: ['NUMERIC', 'PERCENTAGE', 'CURRENCY', 'BOOLEAN'],
+        required: true
+    },
+    unit: {
+        type: String,
+        required: true
+    },
+    targetValue: {
+        type: Number,
+        required: true
+    },
+    minValue: Number,
+    maxValue: Number,
+    frequency: {
+        type: String,
+        enum: ['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL'],
+        required: true
+    },
+    enterprise: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Enterprise'
+    },
+    currentValue: Number,
+    history: [kpiHistorySchema],
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }
 }, {
-  timestamps: true
+    timestamps: true
 });
 
-kpiSchema.index({ enterpriseId: 1 });
-kpiSchema.index({ 'history.date': 1 });
-kpiSchema.index({ 'history.status': 1 });
+// Méthode pour calculer la tendance du KPI
+kpiSchema.methods.calculateTrend = function() {
+    if (this.history.length < 2) return 'flat';
 
-module.exports = mongoose.model('KPI', kpiSchema);
+    const sortedHistory = this.history
+        .filter(h => h.status === 'validated')
+        .sort((a, b) => b.submittedAt - a.submittedAt);
+
+    if (sortedHistory.length < 2) return 'flat';
+
+    const latest = sortedHistory[0].value;
+    const previous = sortedHistory[1].value;
+
+    if (latest > previous) return 'up';
+    if (latest < previous) return 'down';
+    return 'flat';
+};
+
+// Méthode pour calculer le pourcentage de changement
+kpiSchema.methods.calculateChange = function() {
+    if (this.history.length < 2) return 0;
+
+    const sortedHistory = this.history
+        .filter(h => h.status === 'validated')
+        .sort((a, b) => b.submittedAt - a.submittedAt);
+
+    if (sortedHistory.length < 2) return 0;
+
+    const latest = sortedHistory[0].value;
+    const previous = sortedHistory[1].value;
+
+    if (previous === 0) return 0;
+    return ((latest - previous) / previous) * 100;
+};
+
+const KPI = mongoose.model('KPI', kpiSchema);
+
+module.exports = KPI;

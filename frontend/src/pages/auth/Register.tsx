@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { register } from '../../services/authService';
 import { useAuth } from '../../hooks/useAuth';
+import type { User } from '../../types/user.types';
 import './Auth.css';
 
 const Register = () => {
@@ -65,9 +66,15 @@ const Register = () => {
         telephone: formData.telephone
       });
 
-      setUser(response.user);
+      // Map auth response to User type
+      const user: User = {
+        ...response.user,
+        status: 'active' // New users are active by default
+      };
 
-      if (response.user.typeCompte === 'admin') {
+      setUser(user);
+
+      if (user.typeCompte === 'admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/enterprise/dashboard');
@@ -222,4 +229,5 @@ const Register = () => {
   );
 };
 
+export { Register };
 export default Register;

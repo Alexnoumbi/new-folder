@@ -2,7 +2,10 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import {Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { fr } from 'date-fns/locale';
 import { store } from './store/store';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -20,15 +23,17 @@ function App() {
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+          <CssBaseline />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/admin/*" element={<AdminRoutes />} />
             <Route path="/enterprise/*" element={<EnterpriseRoutes />} />
-            <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/" element={<Login />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+        </LocalizationProvider>
       </ThemeProvider>
     </Provider>
   );

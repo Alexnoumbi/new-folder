@@ -23,7 +23,7 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { getReports } from '../../services/reportService';
-import { Report } from '../../types/admin.types';
+import type { Report } from '../../types/reports.types';
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonDataTable from '../../components/Argon/ArgonDataTable';
@@ -175,6 +175,106 @@ const ReportsPage: React.FC = () => {
     }
   };
 
+  const getDisplayDate = (date: string) => {
+    try {
+      return new Date(date).toLocaleDateString('fr-FR');
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const renderReportCard = (report: Report) => (
+    <Card key={report._id}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+              {report.title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {report.type}
+            </Typography>
+          </Box>
+          <Chip
+            icon={getStatusIcon(report.status)}
+            label={report.status}
+            color={getStatusColor(report.status) as any}
+            size="small"
+          />
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Progression
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LinearProgress
+              variant="determinate"
+              value={report.progress}
+              sx={{
+                flex: 1,
+                height: 8,
+                borderRadius: 4,
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: report.progress >= 80 ? '#4caf50' :
+                                 report.progress >= 60 ? '#ff9800' : '#f44336'
+                }
+              }}
+            />
+            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 40 }}>
+              {report.progress}%
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Auteur
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {report.author}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Créé le
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {getDisplayDate(report.createdAt)}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              size="small"
+              startIcon={<VisibilityIcon />}
+              onClick={() => console.log('Voir rapport:', report._id)}
+              variant="outlined"
+              color="primary"
+            >
+              Voir
+            </Button>
+            <Button
+              size="small"
+              startIcon={<DownloadIcon />}
+              onClick={() => console.log('Télécharger:', report._id)}
+              variant="outlined"
+              color="success"
+            >
+              Télécharger
+            </Button>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            ID: {report._id}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
   if (error) {
     return (
       <Box>
@@ -227,7 +327,6 @@ const ReportsPage: React.FC = () => {
         data={tableData}
         loading={loading}
         searchable={true}
-        filterable={true}
         sortable={true}
         pagination={true}
         actions={actions}
@@ -250,108 +349,7 @@ const ReportsPage: React.FC = () => {
               loading={true}
             />
           ))
-        ) : reports.slice(0, 6).map((report, index) => (
-          <Card
-            key={index}
-            sx={{
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-              },
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {report.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {report.type}
-                  </Typography>
-                </Box>
-                <Chip
-                  icon={getStatusIcon(report.status)}
-                  label={report.status}
-                  color={getStatusColor(report.status) as any}
-                  size="small"
-                />
-              </Box>
-
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Progression
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={report.progress || 0}
-                    sx={{
-                      flex: 1,
-                      height: 8,
-                      borderRadius: 4,
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: report.progress && report.progress >= 80 ? '#4caf50' :
-                                       report.progress && report.progress >= 60 ? '#ff9800' : '#f44336'
-                      }
-                    }}
-                  />
-                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 40 }}>
-                    {report.progress || 0}%
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Auteur
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {report.author}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Créé le
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {new Date(report.createdAt).toLocaleDateString('fr-FR')}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => console.log('Voir rapport:', report.id)}
-                    variant="outlined"
-                    color="primary"
-                  >
-                    Voir
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => console.log('Télécharger:', report.id)}
-                    variant="outlined"
-                    color="success"
-                  >
-                    Télécharger
-                  </Button>
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  ID: {report.id}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
+        ) : reports.slice(0, 6).map(renderReportCard)}
       </Box>
     </Box>
   );

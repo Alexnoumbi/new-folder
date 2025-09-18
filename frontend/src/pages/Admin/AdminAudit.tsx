@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Container,
+  Box,
   Typography,
+  TextField,
   Paper,
+  Alert,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Chip,
+  Container,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -10,29 +21,19 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Box,
-  TextField,
-  IconButton,
-  Chip,
-  Stack,
-  CircularProgress,
-  Alert,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  CircularProgress
 } from '@mui/material';
 import {
-  Refresh as RefreshIcon,
   Search as SearchIcon,
-  Download as DownloadIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers';
 import { format } from 'date-fns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import * as auditService from '../../services/auditService';
-import type { AuditLog } from '../../services/auditService';
+import { AuditLog } from '../../types/audit.types';
 import { GridItem } from '../../components/common/GridItem';
 
 const AdminAudit: React.FC = () => {
@@ -101,6 +102,29 @@ const AdminAudit: React.FC = () => {
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const getEntityTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      USER: 'Utilisateur',
+      ENTERPRISE: 'Entreprise',
+      KPI: 'Indicateur',
+      DOCUMENT: 'Document',
+      REPORT: 'Rapport'
+    };
+    return labels[type] || type;
+  };
+
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      CREATE: 'Création',
+      UPDATE: 'Modification',
+      DELETE: 'Suppression',
+      LOGIN: 'Connexion',
+      LOGOUT: 'Déconnexion',
+      EXPORT: 'Export'
+    };
+    return labels[action] || action;
   };
 
   if (loading && logs.length === 0) {
@@ -174,11 +198,11 @@ const AdminAudit: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Timestamp</TableCell>
-              <TableCell>User</TableCell>
+              <TableCell>Date/Heure</TableCell>
+              <TableCell>Utilisateur</TableCell>
               <TableCell>Action</TableCell>
-              <TableCell>Resource</TableCell>
-              <TableCell>Details</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Identifiant</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -187,11 +211,11 @@ const AdminAudit: React.FC = () => {
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((log) => (
                 <TableRow key={log._id}>
-                  <TableCell>{format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
-                  <TableCell>{log.userDetails?.name || 'System'}</TableCell>
+                  <TableCell>{format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}</TableCell>
+                  <TableCell>{log.user?.name || 'Système'}</TableCell>
                   <TableCell>
                     <Chip
-                      label={log.action}
+                      label={getActionLabel(log.action)}
                       color={
                         log.action.includes('CREATE') ? 'success' :
                         log.action.includes('UPDATE') ? 'info' :
@@ -201,8 +225,8 @@ const AdminAudit: React.FC = () => {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>{log.resourceType}</TableCell>
-                  <TableCell>{log.resourceId}</TableCell>
+                  <TableCell>{getEntityTypeLabel(log.entityType)}</TableCell>
+                  <TableCell>{log.entityId}</TableCell>
                   <TableCell align="right">
                     <IconButton size="small" onClick={() => setSelectedLog(log)}>
                       <VisibilityIcon />
@@ -220,6 +244,7 @@ const AdminAudit: React.FC = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Lignes par page"
         />
       </TableContainer>
 
@@ -229,33 +254,53 @@ const AdminAudit: React.FC = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Audit Log Details</DialogTitle>
+        <DialogTitle>
+          Détails du Log
+          <IconButton
+            onClick={() => setSelectedLog(null)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
           {selectedLog && (
             <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>Timestamp</Typography>
-              <Typography sx={{ mb: 2 }}>{format(new Date(selectedLog.timestamp), 'yyyy-MM-dd HH:mm:ss')}</Typography>
+              <Typography variant="subtitle2" gutterBottom>Date/Heure</Typography>
+              <Typography sx={{ mb: 2 }}>
+                {format(new Date(selectedLog.timestamp), 'dd/MM/yyyy HH:mm:ss')}
+              </Typography>
 
-              <Typography variant="subtitle2" gutterBottom>User</Typography>
-              <Typography sx={{ mb: 2 }}>{selectedLog.userDetails?.name || 'System'} ({selectedLog.userDetails?.email})</Typography>
+              <Typography variant="subtitle2" gutterBottom>Utilisateur</Typography>
+              <Typography sx={{ mb: 2 }}>
+                {selectedLog.user?.name || 'Système'}
+                {selectedLog.user?.email && ` (${selectedLog.user.email})`}
+              </Typography>
 
               <Typography variant="subtitle2" gutterBottom>Action</Typography>
-              <Typography sx={{ mb: 2 }}>{selectedLog.action}</Typography>
+              <Typography sx={{ mb: 2 }}>{getActionLabel(selectedLog.action)}</Typography>
 
-              <Typography variant="subtitle2" gutterBottom>Resource</Typography>
-              <Typography sx={{ mb: 2 }}>{selectedLog.resourceType} ({selectedLog.resourceId})</Typography>
+              <Typography variant="subtitle2" gutterBottom>Type</Typography>
+              <Typography sx={{ mb: 2 }}>{getEntityTypeLabel(selectedLog.entityType)}</Typography>
 
-              <Typography variant="subtitle2" gutterBottom>Details</Typography>
-              <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {JSON.stringify(selectedLog.details, null, 2)}
-                </pre>
-              </Paper>
+              <Typography variant="subtitle2" gutterBottom>Identifiant</Typography>
+              <Typography sx={{ mb: 2 }}>{selectedLog.entityId}</Typography>
+
+              {selectedLog.changes && (
+                <>
+                  <Typography variant="subtitle2" gutterBottom>Changements</Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {JSON.stringify(selectedLog.changes, null, 2)}
+                    </pre>
+                  </Paper>
+                </>
+              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSelectedLog(null)}>Close</Button>
+          <Button onClick={() => setSelectedLog(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>
     </Container>

@@ -18,7 +18,7 @@ import {
   Download,
   Refresh
 } from '@mui/icons-material';
-import { KPIHistory } from '../../types/admin.types';
+import { KPIHistory } from '../../types/kpi.types';
 import { getKPIHistory } from '../../services/kpiService';
 import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';

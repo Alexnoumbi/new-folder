@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Button,
   Chip,
@@ -17,8 +16,6 @@ import {
 import {
   Business,
   Add,
-  Search,
-  FilterList,
   Refresh,
   Edit,
   Delete,
@@ -35,13 +32,18 @@ import ArgonPageHeader from '../../components/Argon/ArgonPageHeader';
 import ArgonCard from '../../components/Argon/ArgonCard';
 import ArgonDataTable from '../../components/Argon/ArgonDataTable';
 
+interface TableEntreprise extends Omit<Entreprise, 'employees' | 'kpiScore'> {
+  employees: string;
+  kpiScore: string;
+}
+
 const EntreprisesPage: React.FC = () => {
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntreprise, setSelectedEntreprise] = useState<Entreprise | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchEntreprises();
@@ -90,13 +92,17 @@ const EntreprisesPage: React.FC = () => {
     { id: 'kpiScore', label: 'Score KPI', minWidth: 120, sortable: true },
   ];
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
   const filteredEntreprises = entreprises.filter(entreprise =>
-    entreprise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (entreprise.sector || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (entreprise.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+    entreprise.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (entreprise.secteurActivite || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (entreprise.region || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const tableData = filteredEntreprises.map(entreprise => ({
+  const tableData: TableEntreprise[] = filteredEntreprises.map(entreprise => ({
     ...entreprise,
     employees: `${entreprise.employees || 0} employés`,
     kpiScore: `${entreprise.kpiScore || 0}/100`,
@@ -145,7 +151,7 @@ const EntreprisesPage: React.FC = () => {
     },
     {
       title: 'Actives',
-      value: entreprises.filter(e => e.status === 'active').length,
+      value: entreprises.filter(e => e.statut === 'actif').length,
       icon: <TrendingUp />,
       color: 'success' as const,
       change: '+2'
@@ -159,7 +165,7 @@ const EntreprisesPage: React.FC = () => {
     },
     {
       title: 'Score Moyen KPI',
-      value: `${Math.round(entreprises.reduce((acc, e) => acc + (e.kpiScore || 0), 0) / entreprises.length) || 0}/100`,
+      value: Math.round(entreprises.reduce((acc, e) => acc + (e.kpiScore || 0), 0) / (entreprises.length || 1)),
       icon: <Assessment />,
       color: 'warning' as const,
       change: '+5%'
@@ -168,9 +174,9 @@ const EntreprisesPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'inactive': return 'error';
-      case 'pending': return 'warning';
+      case 'actif': return 'success';
+      case 'inactif': return 'error';
+      case 'suspendu': return 'warning';
       default: return 'default';
     }
   };
@@ -227,7 +233,6 @@ const EntreprisesPage: React.FC = () => {
         data={tableData}
         loading={loading}
         searchable={true}
-        filterable={true}
         sortable={true}
         pagination={true}
         actions={actions}

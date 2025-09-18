@@ -1,13 +1,14 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const Entreprise = require('../models/Entreprise');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { email, password, nom, prenom, role = 'user' } = req.body;
+    const { email, password, nom, prenom, role = 'user', typeCompte = 'entreprise', telephone } = req.body;
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -18,13 +19,43 @@ const register = async (req, res) => {
       });
     }
 
+    let entrepriseId = undefined;
+
+    // Si compte entreprise, créer une fiche Entreprise minimale (valeurs par défaut conformes au schéma)
+    if (typeCompte === 'entreprise') {
+      const tmpNumero = `TMP-${Date.now()}`;
+      const entreprise = await Entreprise.create({
+        identification: {
+          nomEntreprise: `${prenom || ''} ${nom || ''}`.trim() || email.split('@')[0],
+          raisonSociale: '',
+          region: 'Centre',
+          ville: 'Yaoundé',
+          dateCreation: new Date(),
+          secteurActivite: 'Tertiaire',
+          sousSecteur: 'Autres',
+          filiereProduction: '',
+          formeJuridique: 'EI',
+          numeroContribuable: tmpNumero
+        },
+        contact: {
+          email
+        },
+        statut: 'En attente',
+        description: ''
+      });
+      entrepriseId = entreprise._id;
+    }
+
     // Create user (map password -> motDePasse)
     const user = await User.create({
       email,
       motDePasse: password,
       nom,
       prenom,
-      role
+      role,
+      typeCompte,
+      telephone,
+      entrepriseId
     });
 
     res.status(201).json({
@@ -35,7 +66,10 @@ const register = async (req, res) => {
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
-          role: user.role
+          role: user.role,
+          typeCompte: user.typeCompte,
+          telephone: user.telephone,
+          entrepriseId: user.entrepriseId || null
         }
       }
     });
@@ -55,6 +89,8 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log(`Login attempt for email: ${email}`);
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -64,26 +100,32 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+motDePasse');
     if (!user) {
+      console.log('Login failed: user not found');
       return res.status(401).json({
         success: false,
         message: 'Email ou mot de passe incorrect'
       });
     }
 
+    console.log(`User found for login: id=${user._id}, typeCompte=${user.typeCompte}, role=${user.role}`);
+
+    // Vérification du mot de passe
     const isMatch = await bcrypt.compare(password, user.motDePasse);
     if (!isMatch) {
+      console.log('Login failed: invalid password');
       return res.status(401).json({
         success: false,
         message: 'Email ou mot de passe incorrect'
       });
     }
 
+    // Déterminer le dashboard approprié
     let dashboard = '';
-    switch(user.role) {
+    switch(user.typeCompte) {
       case 'admin':
         dashboard = '/admin/dashboard';
         break;
-      case 'enterprise':
+      case 'entreprise':
         dashboard = '/enterprise/dashboard';
         break;
       default:
@@ -98,7 +140,10 @@ const login = async (req, res) => {
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
-          role: user.role
+          role: user.role,
+          typeCompte: user.typeCompte,
+          entrepriseId: user.entrepriseId,
+          telephone: user.telephone
         },
         dashboard
       }

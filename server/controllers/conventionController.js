@@ -32,15 +32,10 @@ exports.createConvention = async (req, res) => {
       status: 'ACTIVE'
     });
 
-    res.status(201).json({
-      success: true,
-      data: convention
-    });
+    return res.status(201).json(convention);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error creating convention'
-    });
+    console.error('Error creating convention:', error);
+    return res.status(500).json({ message: 'Error creating convention', error: error.message });
   }
 };
 
@@ -205,13 +200,17 @@ exports.addDocument = async (req, res) => {
       });
     }
 
-    const { documentId, type } = req.body;
+    const { documentId, documentType, documentName } = req.body;
+
+    if (!convention.documents) {
+      convention.documents = [];
+    }
 
     convention.documents.push({
       documentId,
-      type,
-      addedAt: new Date(),
-      addedBy: req.user.id
+      type: documentType,
+      name: documentName,
+      uploadDate: new Date()
     });
 
     await convention.save();

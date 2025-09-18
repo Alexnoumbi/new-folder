@@ -1,4 +1,8 @@
 const Visit = require('../models/Visit');
+const Entreprise = require('../models/Entreprise');
+const path = require('path');
+const fs = require('fs');
+const { generatePDF } = require('../utils/reports/pdfGenerator');
 const { uploadToS3 } = require('../utils/s3');
 
 // @desc    Obtenir les visites d'une entreprise
@@ -7,6 +11,7 @@ exports.getEnterpriseVisits = async (req, res) => {
   try {
     const visits = await Visit.find({ enterpriseId: req.params.enterpriseId })
       .populate('inspectorId', 'nom prenom')
+      .populate('enterpriseId')
       .sort({ scheduledAt: -1 });
     res.json({
       success: true,
@@ -24,12 +29,16 @@ exports.getEnterpriseVisits = async (req, res) => {
 // @route   POST /api/visites/request
 exports.requestVisit = async (req, res) => {
   try {
-    const { scheduledAt, type, comment } = req.body;
+    const { enterpriseId, scheduledAt, type, comment } = req.body;
+
+    if (!enterpriseId || !scheduledAt || !type) {
+      return res.status(400).json({ success: false, message: 'enterpriseId, scheduledAt et type sont requis' });
+    }
 
     const visit = await Visit.create({
-      enterpriseId: req.params.enterpriseId,
+      enterpriseId,
       requestedBy: req.user.id,
-      scheduledAt,
+      scheduledAt: new Date(scheduledAt),
       type,
       comment,
       status: 'SCHEDULED'
@@ -156,7 +165,7 @@ exports.updateVisitStatus = async (req, res) => {
 // @route   POST /api/visites/:id/report
 exports.submitVisitReport = async (req, res) => {
   try {
-    const { observations, recommendations } = req.body;
+    const { content, outcome, reporterName, enterpriseData } = req.body;
     const visit = await Visit.findById(req.params.id);
 
     if (!visit) {
@@ -166,24 +175,22 @@ exports.submitVisitReport = async (req, res) => {
       });
     }
 
-    const files = req.files;
-    const uploadedFiles = [];
+    if (visit.report && visit.report.submittedAt) {
+      return res.status(400).json({ success: false, message: 'Le rapport existe déjà et ne peut pas être modifié' });
+    }
 
-    if (files && files.length > 0) {
-      for (const file of files) {
-        const uploadResult = await uploadToS3(file);
-        uploadedFiles.push({
-          name: file.originalname,
-          url: uploadResult.Location,
-          type: file.mimetype
-        });
-      }
+    // Snapshot des données de l'entreprise au moment du rapport
+    let enterpriseSnapshot = enterpriseData || null;
+    if (!enterpriseSnapshot && visit.enterpriseId) {
+      const ent = await Entreprise.findById(visit.enterpriseId).lean();
+      if (ent) enterpriseSnapshot = ent;
     }
 
     visit.report = {
-      observations,
-      recommendations,
-      files: uploadedFiles,
+      content: content || '',
+      outcome: outcome || 'COMPLIANT',
+      reporterName: reporterName || (req.user?.nom || req.user?.email || 'Inspecteur'),
+      enterpriseSnapshot,
       submittedBy: req.user.id,
       submittedAt: new Date()
     };
@@ -208,8 +215,8 @@ exports.submitVisitReport = async (req, res) => {
 exports.downloadReport = async (req, res) => {
   try {
     const visit = await Visit.findById(req.params.id)
-      .populate('inspectorId', 'nom prenom')
-      .populate('enterpriseId', 'nom');
+      .populate('inspectorId', 'nom prenom email')
+      .populate('enterpriseId');
 
     if (!visit) {
       return res.status(404).json({
@@ -225,12 +232,30 @@ exports.downloadReport = async (req, res) => {
       });
     }
 
-    // TODO: Générer le PDF du rapport
-    res.json({
-      success: true,
-      data: {
-        downloadUrl: visit.report.files[0]?.url || null
-      }
+    // Génération et streaming du PDF
+    const tmpDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    const filename = `rapport_visite_${visit._id}.pdf`;
+    const filePath = path.join(tmpDir, filename);
+
+    // Construire un objet "report" attendu par generatePDF
+    const reportData = {
+      type: 'visit',
+      createdAt: new Date().toISOString(),
+      startDate: visit.scheduledAt || new Date(),
+      endDate: visit.submittedAt || new Date(),
+      visit,
+    };
+
+    await generatePDF(reportData, filePath, false);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
+    stream.on('close', () => {
+      // Optionnel: supprimer le fichier temporaire
+      fs.unlink(filePath, () => {});
     });
   } catch (error) {
     res.status(500).json({

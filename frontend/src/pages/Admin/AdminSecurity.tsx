@@ -7,7 +7,7 @@ import {
   Paper,
   IconButton,
   LinearProgress,
-  Chip
+  Chip,
 } from '@mui/material';
 import {
   Warning,
@@ -16,7 +16,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import * as adminService from '../../services/adminService';
-import { SecurityAlert, SecurityStatus } from '../../types/admin.types';
+import { SecurityAlert, SecurityStatus } from '../../types/security.types';
 
 const AdminSecurity: React.FC = () => {
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
@@ -46,16 +46,33 @@ const AdminSecurity: React.FC = () => {
     fetchData();
   }, []);
 
-  const getStatusColor = (score: number) => {
+  const getStatusColor = (score: number | undefined) => {
+    if (!score) return 'error';
     if (score >= 90) return 'success';
     if (score >= 70) return 'warning';
     return 'error';
   };
 
-  const getStatusIcon = (score: number) => {
+  const getStatusIcon = (score: number | undefined) => {
+    if (!score) return <Error color="error" />;
     if (score >= 90) return <CheckCircle color="success" />;
     if (score >= 70) return <Warning color="warning" />;
     return <Error color="error" />;
+  };
+
+  const getThreatLevelColor = (level: string) => {
+    switch (level) {
+      case 'critical':
+        return 'error';
+      case 'high':
+        return 'error';
+      case 'medium':
+        return 'warning';
+      case 'low':
+        return 'success';
+      default:
+        return 'info';
+    }
   };
 
   return (
@@ -86,50 +103,82 @@ const AdminSecurity: React.FC = () => {
           <LinearProgress sx={{ width: '100%' }} />
         </Box>
       ) : status && (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-          <Box sx={{ flex: '1 1 50%' }}>
+        <Box display="flex" flexWrap="wrap" gap={3}>
+          {/* Security Score Card */}
+          <Box flex={1} minWidth={300}>
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>État de la Sécurité</Typography>
+              <Typography variant="h6" gutterBottom>État de la sécurité</Typography>
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography variant="h3" color={`${getStatusColor(status.securityScore || 0)}.main`}>
-                  {status.securityScore || 0}%
+                <Typography variant="h3" color={`${getStatusColor(status.securityScore)}.main`}>
+                  {status.securityScore}%
                 </Typography>
-                {getStatusIcon(status.securityScore || 0)}
+                {getStatusIcon(status.securityScore)}
+              </Box>
+              <Box mt={2}>
+                <Typography variant="body2" gutterBottom>Niveau de menace</Typography>
+                <Chip
+                  label={status.threatLevel.toUpperCase()}
+                  color={getThreatLevelColor(status.threatLevel)}
+                  sx={{ mt: 1 }}
+                />
               </Box>
               <LinearProgress
                 variant="determinate"
-                value={status.securityScore || 0}
-                color={getStatusColor(status.securityScore || 0)}
+                value={status.securityScore}
+                color={getStatusColor(status.securityScore)}
                 sx={{ mt: 2 }}
               />
+              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                Dernière mise à jour : {new Date(status.lastUpdate).toLocaleString()}
+              </Typography>
             </Paper>
           </Box>
 
-          <Box sx={{ flex: '1 1 50%' }}>
+          {/* Metrics Card */}
+          <Box flex={1} minWidth={300}>
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Résumé des Alertes</Typography>
+              <Typography variant="h6" gutterBottom>Métriques de sécurité</Typography>
               <Box sx={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 2
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 2,
+                mt: 2
               }}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="error.main">
-                    {alerts.filter(a => a.severity === 'high').length}
+                <Box>
+                  <Typography variant="h6" color="error.main">
+                    {status.metrics.alerts.high}
                   </Typography>
-                  <Typography variant="body2">Critiques</Typography>
+                  <Typography variant="body2">Alertes critiques</Typography>
                 </Box>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="warning.main">
-                    {alerts.filter(a => a.severity === 'medium').length}
+                <Box>
+                  <Typography variant="h6" color="warning.main">
+                    {status.metrics.alerts.medium}
                   </Typography>
-                  <Typography variant="body2">Moyennes</Typography>
+                  <Typography variant="body2">Alertes modérées</Typography>
                 </Box>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="info.main">
-                    {alerts.filter(a => a.severity === 'low').length}
+                <Box>
+                  <Typography variant="h6" color="info.main">
+                    {status.metrics.alerts.low}
                   </Typography>
-                  <Typography variant="body2">Faibles</Typography>
+                  <Typography variant="body2">Alertes mineures</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6">
+                    {status.metrics.alerts.total}
+                  </Typography>
+                  <Typography variant="body2">Total des alertes</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" color="error.main">
+                    {status.metrics.failedLogins24h}
+                  </Typography>
+                  <Typography variant="body2">Échecs de connexion (24h)</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" color="warning.main">
+                    {status.metrics.suspiciousActivities24h}
+                  </Typography>
+                  <Typography variant="body2">Activités suspectes (24h)</Typography>
                 </Box>
               </Box>
             </Paper>
@@ -137,22 +186,28 @@ const AdminSecurity: React.FC = () => {
         </Box>
       )}
 
+      {/* Recent Alerts Section */}
       {alerts.length > 0 && (
         <Box mt={3}>
           <Typography variant="h6" gutterBottom>Alertes Récentes</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {alerts.map((alert) => (
-              <Paper key={alert.id} sx={{ p: 2 }}>
+              <Paper key={alert._id} sx={{ p: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box>
-                    <Typography variant="subtitle1">{alert.type}</Typography>
+                    <Typography variant="subtitle1">{alert.type.replace('_', ' ')}</Typography>
                     <Typography variant="body2" color="textSecondary">
                       {alert.description}
                     </Typography>
+                    {alert.location && (
+                      <Typography variant="caption" color="textSecondary">
+                        Localisation: {alert.location}
+                      </Typography>
+                    )}
                   </Box>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Chip
-                      label={alert.severity}
+                      label={alert.severity.toUpperCase()}
                       color={
                         alert.severity === 'high' ? 'error' :
                         alert.severity === 'medium' ? 'warning' :
@@ -161,10 +216,17 @@ const AdminSecurity: React.FC = () => {
                       size="small"
                     />
                     <Typography variant="caption" color="textSecondary">
-                      {new Date(alert.timestamp).toLocaleDateString()}
+                      {new Date(alert.timestamp).toLocaleString()}
                     </Typography>
                   </Box>
                 </Box>
+                {alert.details && (
+                  <Box mt={1}>
+                    <Typography variant="caption" color="textSecondary">
+                      Détails supplémentaires: {JSON.stringify(alert.details)}
+                    </Typography>
+                  </Box>
+                )}
               </Paper>
             ))}
           </Box>

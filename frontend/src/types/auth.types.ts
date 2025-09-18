@@ -1,46 +1,27 @@
-export interface User {
-  _id: string;
-  email: string;
-  role: 'user' | 'admin' | 'super_admin';
-  nom: string;
-  prenom: string;
-  typeCompte: 'admin' | 'entreprise';
-  telephone?: string;
-  entrepriseId?: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  location?: string;
-  company?: string;
-  position?: string;
-  department?: string;
-  manager?: string;
-  status?: string;
-  lastLogin?: string;
-  createdAt?: string;
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
-  darkMode?: boolean;
-  language?: string;
-}
+import { User as BaseUser } from './user.types';
 
-export type UserRole = User['role'];
+export type User = BaseUser;
 
-export interface UserProfile {
-  firstName?: string;
-  lastName?: string;
-  email: string;
-  phone?: string;
-  location?: string;
-  company?: string;
-  position?: string;
-  department?: string;
-  manager?: string;
+export interface ServerAuthResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: {
+      id: string;
+      email: string;
+      nom: string;
+      prenom: string;
+      role: string;
+      typeCompte: 'admin' | 'entreprise';
+      status?: 'active' | 'inactive' | 'pending';
+      telephone?: string;
+      entreprise?: string;
+    };
+  };
 }
 
 export interface AuthResponse {
   user: User;
-  token: string;
 }
 
 export interface LoginCredentials {
@@ -53,22 +34,6 @@ export interface RegisterData {
   password: string;
   nom: string;
   prenom: string;
-  typeCompte: User['typeCompte'];
+  typeCompte?: 'admin' | 'entreprise';
   telephone?: string;
-  entrepriseId?: string;
-}
-
-export interface SystemInfo {
-  version: string;
-  uptime: number;
-  memory: {
-    total: number;
-    used: number;
-    free: number;
-  };
-  cpu: {
-    model: string;
-    cores: number;
-    usage: number;
-  };
 }
