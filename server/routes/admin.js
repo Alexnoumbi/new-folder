@@ -10,9 +10,8 @@ const {
     getAuditLogs,
     getSystemInfo
 } = require('../controllers/adminController');
-const { getPortfolioStats: getPortfolioStatistics } = require('../controllers/portfolioController');
+const { getGlobalPortfolioStats } = require('../controllers/portfolioController');
 const adminDashboardController = require('../controllers/adminDashboardController');
-const auth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -24,8 +23,8 @@ router.get('/system-info', getSystemInfo);
 // Evolution des entreprises
 router.get('/entreprises/evolution', adminDashboardController.getEntreprisesEvolution);
 
-// Portfolio routes
-router.get('/portfolio/stats', getPortfolioStatistics);
+// Portfolio routes - Stats globales
+router.get('/portfolio/stats', getGlobalPortfolioStats);
 
 // Security routes
 router.get('/security/alerts', getSecurityAlerts);

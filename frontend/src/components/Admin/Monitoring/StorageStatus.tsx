@@ -30,7 +30,7 @@ const StorageStatus: React.FC<StorageStatusProps> = ({ storageStats, backupStatu
     return Math.round((bytes / Math.pow(1024, i))) + ' ' + sizes[i];
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
@@ -56,9 +56,9 @@ const StorageStatus: React.FC<StorageStatusProps> = ({ storageStats, backupStatu
                 Espace de stockage utilisé
               </Typography>
               <Typography variant="body2" color="textSecondary" gutterBottom>
-                {formatBytes(storageStats.totalSize)} • {storageStats.fileCount} fichiers
+                {formatBytes(storageStats.totalSize || storageStats.used || 0)} • {storageStats.fileCount || storageStats.uploads?.total || 0} fichiers
               </Typography>
-              <Tooltip title={`${formatBytes(storageStats.totalSize)} utilisés`}>
+              <Tooltip title={`${formatBytes(storageStats.totalSize || storageStats.used || 0)} utilisés`}>
                 <LinearProgress
                   variant="determinate"
                   value={70} // À remplacer par le calcul réel du pourcentage
@@ -91,7 +91,7 @@ const StorageStatus: React.FC<StorageStatusProps> = ({ storageStats, backupStatu
               </Box>
 
               <List dense>
-                {backupStatus.backups.slice(0, 5).map((backup) => (
+                {backupStatus.backups.slice(0, 5).map((backup: { filename: string; date?: Date; createdAt?: Date | string; size: number }) => (
                   <ListItem
                     key={backup.filename}
                     secondaryAction={
@@ -104,7 +104,7 @@ const StorageStatus: React.FC<StorageStatusProps> = ({ storageStats, backupStatu
                   >
                     <ListItemText
                       primary={backup.filename}
-                      secondary={`${formatBytes(backup.size)} • ${formatDate(backup.createdAt)}`}
+                      secondary={`${formatBytes(backup.size)} • ${formatDate(backup.createdAt || backup.date || new Date())}`}
                     />
                   </ListItem>
                 ))}

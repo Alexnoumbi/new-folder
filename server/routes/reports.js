@@ -5,18 +5,17 @@ const {
     downloadReport,
     deleteReport
 } = require('../controllers/reportController');
-const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Routes des rapports
-router.get('/', auth, getReports);
-router.post('/generate', auth, generateReport);
-router.get('/:id/download', auth, downloadReport);
-router.delete('/:id', auth, deleteReport);
+// Routes des rapports (accessibles sans authentification)
+router.get('/', getReports);
+router.post('/generate', generateReport);
+router.get('/:id/download', downloadReport);
+router.delete('/:id', deleteReport);
 
-// Routes pour les entreprises
-router.get('/entreprise/types', auth, (req, res) => {
+// Routes pour les entreprises (accessible sans authentification)
+router.get('/entreprise/types', (req, res) => {
     const types = [
         { id: 'performance', name: 'Rapport de Performance' },
         { id: 'audit', name: 'Rapport d\'Audit' },

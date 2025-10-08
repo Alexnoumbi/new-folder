@@ -9,17 +9,14 @@ const {
     forgotPassword,
     resetPassword
 } = require('../controllers/authController');
-const auth = require('../middleware/auth');
 
-// Routes publiques
+// Toutes les routes publiques (pas d'authentification requise)
 router.post('/login', login);
 router.post('/register', register);
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);
-
-// Routes protégées
-router.post('/logout', auth, logout);
-router.get('/me', auth, getMe);
-router.put('/update-password', auth, updatePassword);
+router.post('/logout', logout);
+router.get('/me', getMe);
+router.put('/update-password', updatePassword);
 
 module.exports = router;

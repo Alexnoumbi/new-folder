@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const auth = require('../middleware/auth');
 const {
     uploadDocument,
     getDocuments,
@@ -11,7 +10,7 @@ const {
     downloadDocument
 } = require('../controllers/documentController');
 
-// Configuration de multer pour l'upload de documents
+// Configuration de multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -22,19 +21,14 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024 // Limite de 10MB
-    }
-});
+const upload = multer({ storage: storage });
 
-// Routes des documents
-router.post('/', auth, upload.single('file'), uploadDocument);
-router.get('/', auth, getDocuments);
-router.get('/:id', auth, getDocument);
-router.put('/:id', auth, updateDocument);
-router.delete('/:id', auth, deleteDocument);
-router.get('/:id/download', auth, downloadDocument);
+// Routes documents (accessibles sans authentification)
+router.post('/', upload.single('file'), uploadDocument);
+router.get('/', getDocuments);
+router.get('/:id', getDocument);
+router.put('/:id', updateDocument);
+router.delete('/:id', deleteDocument);
+router.get('/:id/download', downloadDocument);
 
 module.exports = router;

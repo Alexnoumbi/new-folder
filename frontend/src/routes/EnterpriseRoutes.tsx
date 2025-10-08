@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Routes, Navigate, Outlet, useLocation } from 'react-router-dom';
-import EnterpriseLayout from '../layouts/EnterpriseLayout';
+import EnterpriseLayout from '../components/Layout/EnterpriseLayout';
 import EnterpriseDashboard from '../pages/Enterprise/EnterpriseDashboard';
 import EntrepriseOverview from '../pages/Enterprise/EntrepriseOverview';
 import KPIHistory from '../pages/Enterprise/KPIHistory';

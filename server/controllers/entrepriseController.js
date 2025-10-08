@@ -568,6 +568,188 @@ const getEntrepriseReports = async (req, res) => {
   }
 };
 
+// Obtenir les statistiques globales des entreprises (pour admin)
+const getGlobalStats = async (req, res) => {
+  try {
+    const total = await Entreprise.countDocuments();
+    const actives = await Entreprise.countDocuments({ statut: 'Actif' });
+    const enAttente = await Entreprise.countDocuments({ statut: 'En attente' });
+    const suspendues = await Entreprise.countDocuments({ statut: 'Suspendu' });
+    const inactives = await Entreprise.countDocuments({ statut: 'Inactif' });
+    const completes = await Entreprise.countDocuments({ informationsCompletes: true });
+
+    // Statistiques par région
+    const parRegion = await Entreprise.aggregate([
+      { $group: { _id: '$identification.region', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Statistiques par secteur
+    const parSecteur = await Entreprise.aggregate([
+      { $group: { _id: '$identification.secteurActivite', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Total employés
+    const totalEmployes = await Entreprise.aggregate([
+      { $group: { _id: null, total: { $sum: '$investissementEmploi.effectifsEmployes' } } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        total,
+        actives,
+        enAttente,
+        suspendues,
+        inactives,
+        completes,
+        totalEmployes: totalEmployes[0]?.total || 0,
+        parRegion,
+        parSecteur
+      }
+    });
+  } catch (error) {
+    console.error('Error in getGlobalStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir uniquement les entreprises agréées/actives
+const getEntreprisesAgrees = async (req, res) => {
+  try {
+    const entreprises = await Entreprise.find({ 
+      statut: { $in: ['Actif', 'AGREE', 'VALIDE', 'ACTIVE'] } 
+    }).sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      data: entreprises
+    });
+  } catch (error) {
+    console.error('Error in getEntreprisesAgrees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des entreprises agréées',
+      error: error.message
+    });
+  }
+};
+
+// Mettre à jour le statut d'une entreprise
+const updateEntrepriseStatut = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { statut } = req.body;
+
+    if (!['Actif', 'En attente', 'Suspendu', 'Inactif'].includes(statut)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Statut invalide'
+      });
+    }
+
+    const entreprise = await Entreprise.findByIdAndUpdate(
+      id,
+      { statut, dateModification: new Date() },
+      { new: true }
+    );
+
+    if (!entreprise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+
+    // Log audit
+    await AuditLog.create({
+      user: req.user?._id,
+      action: 'UPDATE_ENTREPRISE_STATUT',
+      target: 'Entreprise',
+      targetId: id,
+      details: { oldStatut: entreprise.statut, newStatut: statut },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      data: entreprise
+    });
+  } catch (error) {
+    console.error('Error in updateEntrepriseStatut:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du statut',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir l'évolution des entreprises dans le temps
+const getEntreprisesEvolution = async (req, res) => {
+  try {
+    const { start } = req.query;
+    let matchStage = {};
+
+    if (start) {
+      const [year, month] = start.split('-').map(Number);
+      matchStage = {
+        createdAt: { $gte: new Date(year, month - 1, 1) }
+      };
+    }
+
+    const evolution = await Entreprise.aggregate([
+      ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              { $toString: '$_id.year' },
+              '-',
+              {
+                $cond: [
+                  { $lt: ['$_id.month', 10] },
+                  { $concat: ['0', { $toString: '$_id.month' }] },
+                  { $toString: '$_id.month' }
+                ]
+              }
+            ]
+          },
+          count: 1
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: evolution
+    });
+  } catch (error) {
+    console.error('Error in getEntreprisesEvolution:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de l\'évolution',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getEntreprises,
   getEntreprise,
@@ -582,5 +764,9 @@ module.exports = {
   getEntrepriseAffiliations,
   getEntrepriseKPIHistory,
   getEntrepriseMessages,
-  getEntrepriseReports
+  getEntrepriseReports,
+  getGlobalStats,
+  getEntreprisesAgrees,
+  updateEntrepriseStatut,
+  getEntreprisesEvolution
 };

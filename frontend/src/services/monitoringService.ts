@@ -1,85 +1,117 @@
 import api from './api';
 
 export interface SystemStats {
-  // Legacy flat fields (for AdminMonitoring)
-  cpuUsage?: number;
-  memoryUsage?: number;
-  diskUsage?: number;
-  networkIO?: number;
-  cpuTrend?: string;
-  memoryTrend?: string;
-  diskTrend?: string;
-  securityAlerts?: number;
-  securityTrend?: string;
-  // Structure used by SystemStats component
   system: {
     cpu: number;
-    memory: { used: number; free: number; total: number; };
-    disk: { used: number; free: number; total: number; };
+    memory: {
+      total: number;
+      used: number;
+      free: number;
+      percentage: number;
+    };
+    disk: {
+      total: number;
+      used: number;
+      free: number;
+      percentage: number;
+    };
+    osInfo: {
+      platform: string;
+      type: string;
+      release: string;
+      version: string;
+      architecture: string;
+      hostname: string;
+    };
   };
-  requests: { averageResponseTime: number; perMinute: number; };
-  uptime: number;
-}
-
-export interface StorageStats {
-  totalSize: number;
-  fileCount: number;
-  uploadDirectory: string;
+  process: {
+    uptime: number;
+    memory: {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+    };
+    pid: number;
+    nodeVersion: string;
+  };
+  requests: {
+    total: number;
+    perMinute: number;
+    errors: number;
+    successRate: number;
+    averageResponseTime?: number;
+  };
+  database: {
+    status: string;
+    connections: number;
+    responseTime: number;
+  };
+  startTime: number;
+  uptime?: number;
 }
 
 export interface SecurityAlert {
   id: string;
-  type: 'failedLogin' | 'suspiciousIP' | 'blockedIP';
+  type: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
   message: string;
-  ipAddress: string;
-  timestamp: string;
+  ipAddress?: string;
+  timestamp: string | Date;
   resolved: boolean;
 }
 
-export interface BackupStatus {
-  backups: Array<{
-    filename: string;
+export interface StorageStats {
+  total: number;
+  used: number;
+  free: number;
+  percentage: number;
+  totalSize?: number;
+  fileCount?: number;
+  uploads: {
+    total: number;
     size: number;
-    createdAt: string;
-  }>;
-  lastBackup: {
-    filename: string;
-    size: number;
-    createdAt: string;
-  } | null;
+  };
 }
 
-// Monitoring API functions
+export interface BackupStatus {
+  lastBackup: {
+    createdAt: Date | string;
+    size: number;
+  };
+  nextBackup: Date;
+  status: 'success' | 'failed' | 'pending';
+  size: number;
+  backups: Array<{
+    filename: string;
+    date?: Date;
+    createdAt?: Date | string;
+    size: number;
+  }>;
+}
+
 export const getSystemStats = async (): Promise<SystemStats> => {
-  const { data } = await api.get('/system/stats');
-  return data;
+  try {
+    const response = await api.get('/system/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    throw error;
+  }
 };
 
-export const getStorageStats = async (): Promise<StorageStats> => {
-  const { data } = await api.get('/system/storage');
-  return data;
+export const getSystemInfo = async (): Promise<any> => {
+  try {
+    const response = await api.get('/system/info');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching system info:', error);
+    throw error;
+  }
 };
 
-export const getSecurityAlerts = async (): Promise<SecurityAlert[]> => {
-  const { data } = await api.get('/system/security/alerts');
-  return data;
-};
-
-export const resolveSecurityAlert = async (alertId: string): Promise<void> => {
-  await api.put(`/system/security/alerts/${alertId}/resolve`);
-};
-
-export const getBackupStatus = async (): Promise<BackupStatus> => {
-  const { data } = await api.get('/system/backups');
-  return data;
-};
-
-export const initiateBackup = async (): Promise<void> => {
-  await api.post('/system/backups');
-};
-
-const monitoringService = {
+export default {
   getSystemStats,
+  getSystemInfo
 };
-
-export default monitoringService;

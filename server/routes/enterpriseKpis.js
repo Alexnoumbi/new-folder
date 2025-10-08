@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth').auth;
 const KPI = require('../models/KPI');
 const Entreprise = require('../models/Entreprise');
 const mongoose = require('mongoose');
@@ -13,12 +12,6 @@ const kpiHistoryHandler = async (req, res) => {
     if (!entreprise) {
       console.log('Enterprise not found:', req.params.entrepriseId);
       return res.status(404).json({ message: 'Entreprise non trouvée' });
-    }
-
-    // Ensure user has access to this enterprise
-    if (req.user.typeCompte === 'entreprise' && req.user.entreprise.toString() !== req.params.entrepriseId) {
-      console.log('Unauthorized access attempt:', req.user.email);
-      return res.status(403).json({ message: 'Accès non autorisé' });
     }
 
     // Get KPI history for the last 12 months
@@ -76,7 +69,7 @@ const kpiHistoryHandler = async (req, res) => {
   }
 };
 
-// Register the route with the handler function
-router.get('/:entrepriseId/kpi-history', auth, kpiHistoryHandler);
+// Register the route (accessible sans authentification)
+router.get('/:entrepriseId/kpi-history', kpiHistoryHandler);
 
 module.exports = router;

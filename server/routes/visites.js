@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
 const {
     requestVisit,
     getEnterpriseVisits,
@@ -11,17 +10,17 @@ const {
     downloadReport
 } = require('../controllers/visitController');
 
-// Routes de base
-router.post('/request', auth, requestVisit);
-router.get('/enterprise/:enterpriseId', auth, getEnterpriseVisits);
+// Routes visites (accessibles sans authentification)
+router.post('/request', requestVisit);
+router.get('/enterprise/:enterpriseId', getEnterpriseVisits);
 
-// Routes pour la gestion des visites
-router.put('/:id/cancel', auth, cancelVisit);
-router.put('/:id/assign-inspector', auth, assignInspector);
-router.put('/:id/status', auth, updateVisitStatus);
+// Routes de gestion
+router.put('/:id/cancel', cancelVisit);
+router.put('/:id/assign-inspector', assignInspector);
+router.put('/:id/status', updateVisitStatus);
 
-// Routes de rapports
-router.post('/:id/report', auth, submitVisitReport);
-router.get('/:id/report/download', auth, downloadReport);
+// Routes des rapports
+router.post('/:id/report', submitVisitReport);
+router.get('/:id/report/download', downloadReport);
 
 module.exports = router;

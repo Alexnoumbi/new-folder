@@ -49,7 +49,7 @@ const SecurityAlerts: React.FC<SecurityAlertsProps> = ({ alerts }) => {
     }
   };
 
-  const formatDate = (timestamp: string) => {
+  const formatDate = (timestamp: string | Date) => {
     return new Date(timestamp).toLocaleString('fr-FR', {
       day: '2-digit',
       month: '2-digit',

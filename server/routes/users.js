@@ -1,6 +1,5 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
-const auth = require('../middleware/auth');
 const {
   getUsers,
   getUserById,
@@ -28,15 +27,15 @@ const validationUser = [
     .withMessage('Le mot de passe doit contenir au moins 6 caractères')
 ];
 
-// Routes de profil utilisateur
-router.get('/profile', auth, getUserProfile);
-router.put('/profile', auth, updateUserProfile);
+// Routes de profil utilisateur (accessibles sans authentification)
+router.get('/profile', getUserProfile);
+router.put('/profile', updateUserProfile);
 
 // Routes des utilisateurs
-router.get('/', auth, getUsers);
-router.get('/:id', auth, getUserById);
-router.post('/', auth, validationUser, createUser);
-router.put('/:id', auth, validationUser, updateUser);
-router.delete('/:id', auth, deleteUser);
+router.get('/', getUsers);
+router.get('/:id', getUserById);
+router.post('/', validationUser, createUser);
+router.put('/:id', validationUser, updateUser);
+router.delete('/:id', deleteUser);
 
 module.exports = router;

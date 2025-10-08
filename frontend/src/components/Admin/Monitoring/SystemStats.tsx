@@ -92,7 +92,7 @@ const SystemStats: React.FC<SystemStatsProps> = ({ stats }) => {
                 Temps de réponse moyen
               </Typography>
               <Typography variant="body1">
-                {stats.requests.averageResponseTime.toFixed(2)}ms
+                {(stats.requests.averageResponseTime || stats.database.responseTime || 0).toFixed(2)}ms
               </Typography>
             </Box>
             <Box>
@@ -112,7 +112,7 @@ const SystemStats: React.FC<SystemStatsProps> = ({ stats }) => {
             Temps de fonctionnement
           </Typography>
           <Typography variant="body1">
-            {formatUptime(stats.uptime)}
+            {formatUptime(stats.uptime || stats.process.uptime || 0)}
           </Typography>
         </Box>
       </Box>

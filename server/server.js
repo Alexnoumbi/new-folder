@@ -40,10 +40,17 @@ const routes = {
   ocr: require('./routes/ocr'),
   entreprises: require('./routes/entreprises'),
   users: require('./routes/users'),
-  system: require('./routes/system')
+  system: require('./routes/system'),
+  resultsFramework: require('./routes/resultsFramework'),
+  formBuilder: require('./routes/formBuilder'),
+  portfolio: require('./routes/portfolio'),
+  collaboration: require('./routes/collaboration'),
+  enhancedReports: require('./routes/enhancedReports'),
+  public: require('./routes/public')
 };
 
 // Configuration des routes
+app.use('/api/public', routes.public); // Routes publiques (sans auth)
 app.use('/api/auth', routes.auth);
 app.use('/api/admin', routes.admin);
 app.use('/api/audit', routes.audit);
@@ -57,6 +64,11 @@ app.use('/api/ocr', routes.ocr);
 app.use('/api/entreprises', routes.entreprises);
 app.use('/api/users', routes.users);
 app.use('/api/system', routes.system);
+app.use('/api/results-framework', routes.resultsFramework);
+app.use('/api/form-builder', routes.formBuilder);
+app.use('/api/portfolios', routes.portfolio);
+app.use('/api/collaboration', routes.collaboration);
+app.use('/api/enhanced-reports', routes.enhancedReports);
 
 // Servir les fichiers uploadés
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

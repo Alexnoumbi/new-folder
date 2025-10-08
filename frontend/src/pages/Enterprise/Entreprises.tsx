@@ -97,7 +97,7 @@ const EntreprisesPage: React.FC = () => {
   };
 
   const filteredEntreprises = entreprises.filter(entreprise =>
-    entreprise.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (entreprise.nom || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (entreprise.secteurActivite || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (entreprise.region || '').toLowerCase().includes(searchQuery.toLowerCase())
   );

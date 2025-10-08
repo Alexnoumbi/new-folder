@@ -1,6 +1,6 @@
 const User = require('../models/User');
 
-const auth = async (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     const email = req.headers['x-user-email'];
 
@@ -22,4 +22,25 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentification requise' });
+    }
+
+    if (!roles.includes(req.user.typeCompte)) {
+      return res.status(403).json({ 
+        message: 'Accès refusé - Privilèges insuffisants',
+        required: roles,
+        current: req.user.typeCompte
+      });
+    }
+
+    next();
+  };
+};
+
+// Backward compatibility
+const auth = protect;
+
+module.exports = { protect, authorize, auth };
