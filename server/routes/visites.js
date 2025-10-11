@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     requestVisit,
     getEnterpriseVisits,
+    getAllVisits,
     cancelVisit,
     assignInspector,
     updateVisitStatus,
@@ -11,6 +12,7 @@ const {
 } = require('../controllers/visitController');
 
 // Routes visites (accessibles sans authentification)
+router.get('/all', getAllVisits);
 router.post('/request', requestVisit);
 router.get('/enterprise/:enterpriseId', getEnterpriseVisits);
 

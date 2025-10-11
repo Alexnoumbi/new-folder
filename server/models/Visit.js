@@ -26,6 +26,7 @@ const visitSchema = new mongoose.Schema({
   },
   report: {
     content: String,
+    reporterName: String,
     files: [{
       name: String,
       url: String
@@ -38,9 +39,27 @@ const visitSchema = new mongoose.Schema({
     outcome: {
       type: String,
       enum: ['COMPLIANT', 'NON_COMPLIANT', 'NEEDS_FOLLOW_UP']
-    }
+    },
+    enterpriseSnapshot: mongoose.Schema.Types.Mixed
   },
-  cancellationReason: String
+  requestedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  assignedAt: Date,
+  lastUpdatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  lastUpdatedAt: Date,
+  cancelledBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  cancelledAt: Date,
+  cancellationReason: String,
+  statusComment: String,
+  comment: String
 }, {
   timestamps: true
 });

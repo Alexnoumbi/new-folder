@@ -2,6 +2,7 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
+const { logAudit } = require('../utils/auditLogger');
 
 // @desc    Obtenir tous les utilisateurs
 // @route   GET /api/users
@@ -75,6 +76,17 @@ exports.createUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
+        // Log la création d'utilisateur
+        await logAudit({
+            user: req.user,
+            action: 'CREATE',
+            entityType: 'USER',
+            entityId: user._id,
+            details: { email, role, typeCompte },
+            req,
+            status: 'success'
+        });
+        
         // TODO: Envoyer un email avec le mot de passe temporaire
         res.status(201).json({
             _id: user._id,
@@ -85,7 +97,8 @@ exports.createUser = asyncHandler(async (req, res) => {
             typeCompte: user.typeCompte,
             telephone: user.telephone,
             entrepriseId: user.entrepriseId,
-            status: user.status
+            status: user.status,
+            avatar: user.avatar
         });
     } else {
         res.status(400);
@@ -108,8 +121,22 @@ exports.updateUser = asyncHandler(async (req, res) => {
         user.telephone = req.body.telephone || user.telephone;
         user.entrepriseId = req.body.entrepriseId || user.entrepriseId;
         user.status = req.body.status || user.status;
+        if (req.body.avatar !== undefined) {
+            user.avatar = req.body.avatar;
+        }
 
         const updatedUser = await user.save();
+
+        // Log la modification d'utilisateur
+        await logAudit({
+            user: req.user,
+            action: 'UPDATE',
+            entityType: 'USER',
+            entityId: updatedUser._id,
+            changes: req.body,
+            req,
+            status: 'success'
+        });
 
         res.json({
             _id: updatedUser._id,
@@ -120,7 +147,8 @@ exports.updateUser = asyncHandler(async (req, res) => {
             typeCompte: updatedUser.typeCompte,
             telephone: updatedUser.telephone,
             entrepriseId: updatedUser.entrepriseId,
-            status: updatedUser.status
+            status: updatedUser.status,
+            avatar: updatedUser.avatar
         });
     } else {
         res.status(404);
@@ -135,6 +163,17 @@ exports.deleteUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
 
     if (user) {
+        // Log la suppression d'utilisateur
+        await logAudit({
+            user: req.user,
+            action: 'DELETE',
+            entityType: 'USER',
+            entityId: user._id,
+            details: { email: user.email, nom: user.nom, prenom: user.prenom },
+            req,
+            status: 'success'
+        });
+        
         await user.deleteOne();
         res.json({ message: 'Utilisateur supprimé' });
     } else {
@@ -188,7 +227,9 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
         user.ville = req.body.ville || user.ville;
         user.pays = req.body.pays || user.pays;
         user.codePostal = req.body.codePostal || user.codePostal;
-        user.avatar = req.body.avatar || user.avatar;
+        if (req.body.avatar !== undefined) {
+            user.avatar = req.body.avatar;
+        }
         user.description = req.body.description || user.description;
 
         // Mettre à jour le mot de passe si fourni
@@ -224,4 +265,79 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Utilisateur non trouvé');
     }
+});
+
+// @desc    Convertir un utilisateur en compte entreprise
+// @route   POST /api/users/:id/convert-to-enterprise
+// @access  Private/Admin
+exports.convertToEnterprise = asyncHandler(async (req, res) => {
+    const Entreprise = require('../models/Entreprise');
+    
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('Utilisateur non trouvé');
+    }
+
+    if (user.typeCompte === 'entreprise') {
+        res.status(400);
+        throw new Error('Cet utilisateur est déjà un compte entreprise');
+    }
+
+    // Créer une nouvelle entreprise avec les données de base du user
+    const entreprise = await Entreprise.create({
+        identification: {
+            nomEntreprise: `${user.nom} ${user.prenom}`,
+            region: 'Centre',
+            ville: 'Yaoundé',
+            dateCreation: new Date(),
+            secteurActivite: 'Tertiaire',
+            sousSecteur: 'Autres'
+        },
+        contact: {
+            email: user.email,
+            telephone: user.telephone || ''
+        },
+        statut: 'En cours'
+    });
+
+    // Mettre à jour l'utilisateur
+    user.typeCompte = 'entreprise';
+    user.entrepriseId = entreprise._id;
+    await user.save();
+
+    // Log la conversion
+    await logAudit({
+        user: req.user,
+        action: 'UPDATE',
+        entityType: 'USER',
+        entityId: user._id,
+        details: { 
+            action: 'CONVERT_TO_ENTERPRISE',
+            entrepriseId: entreprise._id,
+            entrepriseName: entreprise.identification.nomEntreprise
+        },
+        req,
+        status: 'success'
+    });
+
+    res.json({
+        message: 'Utilisateur converti en entreprise avec succès',
+        user: {
+            _id: user._id,
+            nom: user.nom,
+            prenom: user.prenom,
+            email: user.email,
+            role: user.role,
+            typeCompte: user.typeCompte,
+            telephone: user.telephone,
+            entrepriseId: user.entrepriseId,
+            status: user.status
+        },
+        entreprise: {
+            _id: entreprise._id,
+            nom: entreprise.identification.nomEntreprise
+        }
+    });
 });

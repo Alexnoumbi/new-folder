@@ -1,6 +1,7 @@
 export interface KPI {
     _id: string;
     name: string;
+    code?: string;
     description?: string;
     type: 'NUMERIC' | 'PERCENTAGE' | 'CURRENCY' | 'BOOLEAN';
     unit: string;
@@ -10,12 +11,14 @@ export interface KPI {
     frequency: 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'ANNUAL';
     currentValue?: number;
     enterprise?: string;
+    linkedIndicators?: string[];
     createdAt: string;
     updatedAt: string;
 }
 
 export interface KPIFormData {
     name: string;
+    code?: string;
     description?: string;
     type: 'NUMERIC' | 'PERCENTAGE' | 'CURRENCY' | 'BOOLEAN';
     unit: string;

@@ -40,6 +40,11 @@ const resultsFrameworkSchema = new mongoose.Schema({
     ref: 'Entreprise',
     required: true
   },
+  // Alias pour compatibilité
+  entreprise: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Entreprise'
+  },
   name: {
     type: String,
     required: true,
@@ -327,6 +332,19 @@ resultsFrameworkSchema.methods.calculateOutcomeProgress = function(outcomeId) {
   const achievedOutputs = relatedOutputs.filter(o => o.status === 'ACHIEVED').length;
   return Math.round((achievedOutputs / relatedOutputs.length) * 100);
 };
+
+// Middleware pour synchroniser project et entreprise
+resultsFrameworkSchema.pre('save', function(next) {
+  // Si project est défini mais pas entreprise, copier project vers entreprise
+  if (this.project && !this.entreprise) {
+    this.entreprise = this.project;
+  }
+  // Si entreprise est défini mais pas project, copier entreprise vers project
+  if (this.entreprise && !this.project) {
+    this.project = this.entreprise;
+  }
+  next();
+});
 
 const ResultsFramework = mongoose.model('ResultsFramework', resultsFrameworkSchema);
 

@@ -34,12 +34,25 @@ export const deleteUser = async (id: string): Promise<{ message: string }> => {
     return response.data;
 };
 
+export const convertToEnterprise = async (id: string): Promise<{ message: string; user: User }> => {
+    const response = await api.post(`/users/${id}/convert-to-enterprise`);
+    return response.data;
+};
+
+// Get admin users only (for enterprise messaging)
+export const getAdminUsers = async (): Promise<User[]> => {
+    const response = await api.get('/users?typeCompte=admin');
+    return response.data;
+};
+
 const userService = {
     getUsers,
     getUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    convertToEnterprise,
+    getAdminUsers
 };
 
 export default userService;

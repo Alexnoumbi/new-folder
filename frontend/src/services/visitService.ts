@@ -29,7 +29,8 @@ export interface VisitRequest {
 const visitService = {
   getVisitsByEnterprise: async (enterpriseId: string): Promise<Visit[]> => {
     const response = await api.get(`/visites/enterprise/${enterpriseId}`);
-    return response.data;
+    // Normaliser la réponse
+    return response.data.data || response.data || [];
   },
 
   requestVisit: async (request: VisitRequest): Promise<Visit> => {

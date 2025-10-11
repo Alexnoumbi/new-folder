@@ -7,7 +7,8 @@ const {
   updateUser,
   deleteUser,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  convertToEnterprise
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -37,5 +38,6 @@ router.get('/:id', getUserById);
 router.post('/', validationUser, createUser);
 router.put('/:id', validationUser, updateUser);
 router.delete('/:id', deleteUser);
+router.post('/:id/convert-to-enterprise', convertToEnterprise);
 
 module.exports = router;

@@ -24,7 +24,7 @@ const reportSchema = new mongoose.Schema({
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false
     },
     startDate: {
         type: Date,
@@ -45,7 +45,15 @@ const reportSchema = new mongoose.Schema({
         max: 100,
         default: 0
     },
-    error: String
+    error: String,
+    data: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    usedTemplate: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ReportTemplate'
+    }
 });
 
 module.exports = mongoose.model('Report', reportSchema);

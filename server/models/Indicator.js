@@ -1,149 +1,169 @@
 const mongoose = require('mongoose');
 
-const indicatorHistorySchema = new mongoose.Schema({
-  value: {
-    type: Number,
-    required: true
-  },
-  submittedAt: {
-    type: Date,
-    default: Date.now
-  },
-  submittedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['PENDING', 'VALIDATED', 'REJECTED'],
-    default: 'PENDING'
-  },
-  comment: String,
-  attachments: [{
-    name: String,
-    url: String,
-    uploadedAt: Date
-  }]
-});
-
 const indicatorSchema = new mongoose.Schema({
-  conventionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Convention',
-    required: true
-  },
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
-  description: String,
+  code: {
+    type: String,
+    required: true,
+    unique: true,
+    uppercase: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
   type: {
     type: String,
-    enum: ['NUMERIC', 'PERCENTAGE', 'CURRENCY', 'BOOLEAN'],
+    enum: ['OUTCOME', 'OUTPUT', 'ACTIVITY', 'IMPACT', 'QUANTITATIVE', 'QUALITATIVE'],
     required: true
   },
-  unit: String,
-  frequency: {
+  // Liaison avec Cadre de Résultats
+  framework: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ResultsFramework'
+  },
+  // Liaison avec KPIs d'entreprise
+  linkedKPIs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'KPI'
+  }],
+  // Entreprise concernée
+  entreprise: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Entreprise',
+    required: true
+  },
+  // Mesures
+  unit: {
     type: String,
-    enum: ['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL'],
-    required: true
+    required: true,
+    trim: true
   },
-  targetValue: {
-    type: Number,
-    required: true
-  },
-  minValue: Number,
-  maxValue: Number,
-  currentValue: {
+  baseline: {
     type: Number,
     default: 0
   },
+  target: {
+    type: Number,
+    required: true
+  },
+  current: {
+    type: Number,
+    default: 0
+  },
+  targetDate: {
+    type: Date
+  },
+  // Fréquence de collecte
+  frequency: {
+    type: String,
+    enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL'],
+    default: 'MONTHLY'
+  },
+  // Source de données
+  dataSource: {
+    type: String,
+    trim: true
+  },
+  responsible: {
+    type: String,
+    trim: true
+  },
+  // Historique des valeurs
+  history: [{
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    value: {
+      type: Number,
+      required: true
+    },
+    comment: {
+      type: String,
+      trim: true
+    },
+    recordedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  }],
+  // Statut automatique basé sur progression
   status: {
     type: String,
     enum: ['ON_TRACK', 'AT_RISK', 'OFF_TRACK', 'NOT_STARTED'],
     default: 'NOT_STARTED'
   },
-  nextReportingDate: Date,
-  history: [indicatorHistorySchema],
-  metadata: {
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    lastModifiedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    updatedAt: Date
+  // Moyens de vérification
+  verificationMeans: [{
+    type: String,
+    trim: true
+  }],
+  // Hypothèses
+  assumptions: [{
+    type: String,
+    trim: true
+  }],
+  // Métadonnées
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
 
-// Calculate status based on current value vs target
-indicatorSchema.methods.calculateStatus = function() {
-  if (!this.currentValue) return 'NOT_STARTED';
+// Index pour recherche rapide
+indicatorSchema.index({ code: 1 });
+indicatorSchema.index({ entreprise: 1 });
+indicatorSchema.index({ framework: 1 });
+indicatorSchema.index({ type: 1 });
+// Index textuel désactivé temporairement pour éviter les conflits
+// indicatorSchema.index({ name: 'text', description: 'text' });
 
-  const percentage = (this.currentValue / this.targetValue) * 100;
-
-  if (percentage >= 90) return 'ON_TRACK';
-  if (percentage >= 70) return 'AT_RISK';
-  return 'OFF_TRACK';
+// Méthode pour calculer le pourcentage de progression
+indicatorSchema.methods.calculateProgress = function() {
+  if (!this.target || this.target === 0) return 0;
+  return Math.min((this.current / this.target) * 100, 100);
 };
 
-// Add a new value to history
-indicatorSchema.methods.addHistoryEntry = function(value, userId, attachments = [], comment = '') {
-  this.history.push({
-    value,
-    submittedBy: userId,
-    attachments,
-    comment
-  });
-
-  this.currentValue = value;
-  this.status = this.calculateStatus();
-  this.metadata.lastModifiedBy = userId;
-  this.metadata.updatedAt = new Date();
-};
-
-// Get next reporting date based on frequency
-indicatorSchema.methods.calculateNextReportingDate = function() {
-  const now = new Date();
-  let next = new Date();
-
-  switch(this.frequency) {
-    case 'MONTHLY':
-      next.setMonth(now.getMonth() + 1);
-      break;
-    case 'QUARTERLY':
-      next.setMonth(now.getMonth() + 3);
-      break;
-    case 'SEMI_ANNUAL':
-      next.setMonth(now.getMonth() + 6);
-      break;
-    case 'ANNUAL':
-      next.setFullYear(now.getFullYear() + 1);
-      break;
+// Méthode pour mettre à jour le statut automatiquement
+indicatorSchema.methods.updateStatus = function() {
+  const progress = this.calculateProgress();
+  
+  if (progress === 0) {
+    this.status = 'NOT_STARTED';
+  } else if (progress >= 75) {
+    this.status = 'ON_TRACK';
+  } else if (progress >= 50) {
+    this.status = 'AT_RISK';
+  } else {
+    this.status = 'OFF_TRACK';
   }
-
-  return next;
+  
+  return this.status;
 };
 
-// Middleware to update status and next reporting date
+// Middleware pour mettre à jour le statut avant sauvegarde
 indicatorSchema.pre('save', function(next) {
-  if (this.isModified('currentValue')) {
-    this.status = this.calculateStatus();
+  if (this.isModified('current') || this.isModified('target')) {
+    this.updateStatus();
   }
-
-  if (this.isModified('frequency') || !this.nextReportingDate) {
-    this.nextReportingDate = this.calculateNextReportingDate();
-  }
-
   next();
 });
 

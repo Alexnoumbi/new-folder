@@ -49,6 +49,35 @@ const userSchema = new mongoose.Schema({
   },
   telephone: {
     type: String,
+  },
+  avatar: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'pending'],
+    default: 'active'
+  },
+  adresse: {
+    type: String,
+    default: ''
+  },
+  ville: {
+    type: String,
+    default: ''
+  },
+  pays: {
+    type: String,
+    default: ''
+  },
+  codePostal: {
+    type: String,
+    default: ''
+  },
+  description: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true,

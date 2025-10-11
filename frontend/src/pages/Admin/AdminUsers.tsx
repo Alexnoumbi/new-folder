@@ -23,9 +23,10 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
-import { getUsers, createUser, updateUser, deleteUser } from '../../services/userService';
+import { getUsers, createUser, updateUser, deleteUser, convertToEnterprise } from '../../services/userService';
 import type { User, UserCreateData, UserUpdateData } from '../../types/user.types';
 
 const AdminUsers: React.FC = () => {
@@ -139,6 +140,9 @@ const AdminUsers: React.FC = () => {
   };
 
   const handleDelete = async (userId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+      return;
+    }
     try {
       setLoading(true);
       await deleteUser(userId);
@@ -146,6 +150,23 @@ const AdminUsers: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la suppression de l\'utilisateur');
       console.error('Error deleting user:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConvertToEnterprise = async (userId: string, user: User) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir transformer ${user.nom} ${user.prenom} en compte entreprise ?`)) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await convertToEnterprise(userId);
+      await fetchUsers();
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors de la transformation en entreprise');
+      console.error('Error converting to enterprise:', err);
     } finally {
       setLoading(false);
     }
@@ -223,6 +244,16 @@ const AdminUsers: React.FC = () => {
                   <IconButton size="small" onClick={() => handleOpenEditDialog(user)}>
                     <EditIcon />
                   </IconButton>
+                  {user.typeCompte !== 'entreprise' && (
+                    <IconButton 
+                      size="small" 
+                      color="info"
+                      onClick={() => handleConvertToEnterprise(user.id, user)}
+                      title="Transformer en entreprise"
+                    >
+                      <BusinessIcon />
+                    </IconButton>
+                  )}
                   <IconButton
                     size="small"
                     color="error"
@@ -314,6 +345,108 @@ const AdminUsers: React.FC = () => {
           </DialogActions>
         </Dialog>
       )}
+
+      {/* Dialogue de création/édition */}
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingUser ? 'Modifier l\'utilisateur' : 'Créer un nouvel utilisateur'}
+        </DialogTitle>
+        <DialogContent>
+          {formError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formError}
+            </Alert>
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                required
+              />
+              <TextField
+                fullWidth
+                label="Prénom"
+                value={formData.prenom}
+                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                required
+              />
+            </Box>
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Téléphone"
+                value={formData.telephone}
+                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+              />
+              <TextField
+                fullWidth
+                label="Entreprise"
+                value={formData.entreprise}
+                onChange={(e) => setFormData({ ...formData, entreprise: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Rôle</InputLabel>
+                <Select
+                  value={formData.role}
+                  label="Rôle"
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                >
+                  <MenuItem value="user">Utilisateur</MenuItem>
+                  <MenuItem value="admin">Administrateur</MenuItem>
+                  <MenuItem value="super_admin">Super Admin</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Type de compte</InputLabel>
+                <Select
+                  value={formData.typeCompte}
+                  label="Type de compte"
+                  onChange={(e) => setFormData({ ...formData, typeCompte: e.target.value as any })}
+                >
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="entreprise">Entreprise</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <FormControl fullWidth>
+              <InputLabel>Statut</InputLabel>
+              <Select
+                value={formData.status}
+                label="Statut"
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+              >
+                <MenuItem value="active">Actif</MenuItem>
+                <MenuItem value="inactive">Inactif</MenuItem>
+                <MenuItem value="pending">En attente</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Annuler</Button>
+          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+            {editingUser ? 'Modifier' : 'Créer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

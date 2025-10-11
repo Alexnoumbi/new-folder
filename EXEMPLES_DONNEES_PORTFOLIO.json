@@ -1,0 +1,367 @@
+{
+  "portfolios_exemples": [
+    {
+      "name": "Programme de Développement Rural Intégré",
+      "code": "PF-001",
+      "description": "Programme visant à améliorer les conditions de vie en milieu rural à travers le développement agricole, l'accès à l'eau potable et l'éducation.",
+      "portfolioType": "PROGRAM",
+      "status": "ACTIVE",
+      "visibility": "INTERNAL",
+      "period": {
+        "startDate": "2024-01-01",
+        "endDate": "2026-12-31",
+        "fiscalYear": "2024-2026"
+      },
+      "budget": {
+        "totalBudget": {
+          "amount": 50000000,
+          "currency": "FCFA"
+        }
+      },
+      "tags": ["agriculture", "rural", "développement", "eau", "éducation"]
+    },
+    {
+      "name": "Autonomisation des Femmes et Jeunes",
+      "code": "PF-002",
+      "description": "Initiative thématique pour renforcer l'autonomisation économique des femmes et des jeunes à travers la formation professionnelle et l'entrepreneuriat.",
+      "portfolioType": "THEME",
+      "status": "ACTIVE",
+      "visibility": "PUBLIC",
+      "period": {
+        "startDate": "2024-06-01",
+        "endDate": "2027-05-31",
+        "fiscalYear": "2024-2027"
+      },
+      "budget": {
+        "totalBudget": {
+          "amount": 35000000,
+          "currency": "FCFA"
+        }
+      },
+      "tags": ["femmes", "jeunes", "entrepreneuriat", "formation"]
+    },
+    {
+      "name": "Développement Régional Nord",
+      "code": "PF-003",
+      "description": "Portfolio régional concentré sur le développement infrastructurel et économique de la région Nord.",
+      "portfolioType": "REGION",
+      "status": "PLANNING",
+      "visibility": "INTERNAL",
+      "period": {
+        "startDate": "2025-01-01",
+        "endDate": "2028-12-31",
+        "fiscalYear": "2025-2028"
+      },
+      "budget": {
+        "totalBudget": {
+          "amount": 75000000,
+          "currency": "FCFA"
+        }
+      },
+      "tags": ["infrastructure", "nord", "développement régional"]
+    },
+    {
+      "name": "Programme Banque Mondiale - Santé",
+      "code": "PF-004",
+      "description": "Portfolio financé par la Banque Mondiale pour améliorer l'accès aux soins de santé primaires.",
+      "portfolioType": "DONOR",
+      "status": "ACTIVE",
+      "visibility": "RESTRICTED",
+      "period": {
+        "startDate": "2023-07-01",
+        "endDate": "2026-06-30",
+        "fiscalYear": "2023-2026"
+      },
+      "budget": {
+        "totalBudget": {
+          "amount": 120000000,
+          "currency": "FCFA"
+        }
+      },
+      "tags": ["santé", "banque mondiale", "soins primaires"]
+    },
+    {
+      "name": "Innovation Technologique PME",
+      "code": "PF-005",
+      "description": "Portfolio personnalisé pour soutenir l'innovation technologique dans les PME locales.",
+      "portfolioType": "CUSTOM",
+      "status": "ACTIVE",
+      "visibility": "INTERNAL",
+      "period": {
+        "startDate": "2024-03-01",
+        "endDate": "2026-02-28",
+        "fiscalYear": "2024-2026"
+      },
+      "budget": {
+        "totalBudget": {
+          "amount": 25000000,
+          "currency": "FCFA"
+        }
+      },
+      "tags": ["innovation", "technologie", "PME", "digital"]
+    }
+  ],
+  "risques_exemples": [
+    {
+      "description": "Retard dans les décaissements des fonds par le bailleur principal",
+      "category": "FINANCIAL",
+      "probability": "HIGH",
+      "impact": "CRITICAL",
+      "mitigationPlan": "Diversifier les sources de financement, établir un fonds de roulement de 3 mois, négocier un calendrier de décaissement révisé avec le bailleur"
+    },
+    {
+      "description": "Taux élevé de turnover du personnel clé du projet",
+      "category": "OPERATIONAL",
+      "probability": "MEDIUM",
+      "impact": "HIGH",
+      "mitigationPlan": "Améliorer les packages de rémunération, créer un plan de succession, former des personnes de relève, améliorer l'environnement de travail"
+    },
+    {
+      "description": "Conditions météorologiques défavorables affectant les activités agricoles",
+      "category": "OPERATIONAL",
+      "probability": "MEDIUM",
+      "impact": "MEDIUM",
+      "mitigationPlan": "Diversifier les cultures, promouvoir l'agriculture climato-intelligente, souscrire une assurance agricole, créer des réserves alimentaires"
+    },
+    {
+      "description": "Non-respect des exigences de conformité du bailleur",
+      "category": "COMPLIANCE",
+      "probability": "LOW",
+      "impact": "CRITICAL",
+      "mitigationPlan": "Former l'équipe sur les exigences de conformité, effectuer des audits internes trimestriels, désigner un point focal conformité, utiliser des checklists"
+    },
+    {
+      "description": "Instabilité politique dans la zone d'intervention",
+      "category": "STRATEGIC",
+      "probability": "LOW",
+      "impact": "HIGH",
+      "mitigationPlan": "Établir des relations avec les autorités locales, créer un plan de contingence, diversifier géographiquement les interventions, assurer la sécurité du personnel"
+    },
+    {
+      "description": "Faible adhésion des communautés bénéficiaires",
+      "category": "STRATEGIC",
+      "probability": "MEDIUM",
+      "impact": "HIGH",
+      "mitigationPlan": "Renforcer la communication et la sensibilisation, impliquer les leaders communautaires dès le début, adapter les activités aux besoins locaux, créer des comités de gestion communautaires"
+    },
+    {
+      "description": "Mauvaise réputation suite à des allégations de corruption",
+      "category": "REPUTATIONAL",
+      "probability": "LOW",
+      "impact": "CRITICAL",
+      "mitigationPlan": "Mettre en place un code de conduite strict, établir des mécanismes de plainte et de whistleblowing, renforcer la transparence financière, conduire des audits réguliers"
+    },
+    {
+      "description": "Pénurie de main-d'œuvre qualifiée dans certains domaines techniques",
+      "category": "OPERATIONAL",
+      "probability": "HIGH",
+      "impact": "MEDIUM",
+      "mitigationPlan": "Développer des partenariats avec des universités, créer des programmes de formation interne, recruter à l'international si nécessaire, sous-traiter certaines tâches techniques"
+    }
+  ],
+  "lecons_apprises_exemples": [
+    {
+      "title": "Importance de la communication en langues locales",
+      "description": "Les communautés ont beaucoup mieux adhéré aux activités du projet lorsque nous avons utilisé les radios communautaires et les langues locales plutôt que les canaux de communication traditionnels en français.",
+      "category": "Communication",
+      "recommendations": [
+        "Intégrer les radios locales dans la stratégie de communication dès le début du projet",
+        "Former les équipes à la communication interculturelle et aux langues locales",
+        "Allouer un budget spécifique pour la traduction et l'adaptation des messages",
+        "Impliquer les leaders d'opinion locaux comme relais de communication"
+      ]
+    },
+    {
+      "title": "Suivi rapproché améliore significativement les résultats",
+      "description": "Les projets avec des visites de suivi mensuelles ont montré un taux de réussite de 85% contre 60% pour ceux avec un suivi trimestriel.",
+      "category": "Suivi-Évaluation",
+      "recommendations": [
+        "Établir un calendrier de visites de suivi mensuel minimum",
+        "Utiliser des outils digitaux pour le suivi en temps réel entre les visites",
+        "Former les équipes locales au self-monitoring",
+        "Créer des tableaux de bord de suivi accessibles à tous les niveaux"
+      ]
+    },
+    {
+      "title": "Partenariats avec les organisations locales sont essentiels",
+      "description": "Collaborer avec des ONG locales déjà établies a permis de gagner rapidement la confiance des communautés et d'accélérer la mise en œuvre des activités.",
+      "category": "Partenariat",
+      "recommendations": [
+        "Cartographier les organisations locales avant le démarrage du projet",
+        "Établir des protocoles de collaboration clairs dès le début",
+        "Investir dans le renforcement des capacités des partenaires locaux",
+        "Créer des mécanismes de coordination réguliers"
+      ]
+    },
+    {
+      "title": "Formation continue du personnel est un investissement rentable",
+      "description": "Le personnel formé régulièrement a montré 40% de productivité en plus et un taux de rétention 60% supérieur à celui non formé.",
+      "category": "Ressources Humaines",
+      "recommendations": [
+        "Allouer minimum 5% du budget au développement des compétences",
+        "Créer un plan de formation annuel pour chaque membre de l'équipe",
+        "Diversifier les modalités de formation (en ligne, présentiel, coaching)",
+        "Mesurer l'impact des formations sur les performances"
+      ]
+    },
+    {
+      "title": "Implication des femmes dans la prise de décision augmente l'impact",
+      "description": "Les projets où les femmes représentaient au moins 50% des comités de gestion ont montré des résultats de durabilité supérieurs de 35%.",
+      "category": "Genre",
+      "recommendations": [
+        "Fixer des quotas minimums de participation féminine dans les organes de décision",
+        "Former les femmes leaders aux compétences de gestion et de leadership",
+        "Adapter les horaires et lieux de réunion pour faciliter la participation féminine",
+        "Sensibiliser les communautés sur l'importance de l'égalité de genre"
+      ]
+    },
+    {
+      "title": "Planification participative réduit les conflits",
+      "description": "Les projets ayant impliqué les bénéficiaires dès la phase de conception ont connu 70% moins de conflits et de résistances durant la mise en œuvre.",
+      "category": "Planification",
+      "recommendations": [
+        "Organiser des consultations communautaires avant la finalisation des plans",
+        "Utiliser des approches participatives (focus groups, ateliers)",
+        "Documenter et intégrer les feedbacks des communautés",
+        "Valider les plans finaux avec les représentants communautaires"
+      ]
+    },
+    {
+      "title": "Digitalisation améliore l'efficacité opérationnelle",
+      "description": "L'utilisation d'outils digitaux pour la gestion des données et la communication a réduit les délais de reporting de 50% et amélioré la qualité des données.",
+      "category": "Technologie",
+      "recommendations": [
+        "Investir dans des plateformes de gestion de projet adaptées",
+        "Former tout le personnel aux outils digitaux de base",
+        "Assurer une connectivité internet fiable dans les bureaux",
+        "Mettre en place des systèmes de backup et de sécurité des données"
+      ]
+    },
+    {
+      "title": "Flexibilité budgétaire nécessaire face aux imprévus",
+      "description": "Les projets avec une réserve de contingence de 10-15% ont pu s'adapter aux imprévus sans compromettre les objectifs principaux.",
+      "category": "Gestion Financière",
+      "recommendations": [
+        "Prévoir systématiquement une ligne budgétaire de contingence (10-15%)",
+        "Établir des procédures claires pour l'utilisation des fonds de contingence",
+        "Réviser les budgets trimestriellement pour ajuster si nécessaire",
+        "Communiquer de manière transparente sur les réallocations budgétaires"
+      ]
+    }
+  ],
+  "objectifs_exemples": [
+    {
+      "description": "Améliorer les revenus agricoles de 30% pour 5000 ménages",
+      "priority": "HIGH",
+      "targetDate": "2026-12-31",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "description": "Former 2000 femmes à l'entrepreneuriat",
+      "priority": "HIGH",
+      "targetDate": "2027-05-31",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "description": "Construire 50 forages d'eau potable dans la région Nord",
+      "priority": "CRITICAL",
+      "targetDate": "2028-06-30",
+      "status": "NOT_STARTED"
+    },
+    {
+      "description": "Réduire la mortalité infantile de 25%",
+      "priority": "CRITICAL",
+      "targetDate": "2026-06-30",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "description": "Digitaliser 500 PME locales",
+      "priority": "MEDIUM",
+      "targetDate": "2026-02-28",
+      "status": "IN_PROGRESS"
+    }
+  ],
+  "bailleurs_exemples": [
+    {
+      "name": "Banque Mondiale",
+      "type": "MULTILATERAL",
+      "contribution": {
+        "amount": 80000000,
+        "currency": "FCFA",
+        "percentage": 66.67
+      },
+      "contactPerson": "Dr. Jean Dupont",
+      "email": "j.dupont@worldbank.org",
+      "requirements": [
+        "Rapports trimestriels détaillés",
+        "Audit externe annuel",
+        "Politique de sauvegarde environnementale et sociale",
+        "Passation de marchés selon procédures BM"
+      ]
+    },
+    {
+      "name": "Agence Française de Développement (AFD)",
+      "type": "BILATERAL",
+      "contribution": {
+        "amount": 45000000,
+        "currency": "FCFA",
+        "percentage": 30
+      },
+      "contactPerson": "Marie Martin",
+      "email": "m.martin@afd.fr",
+      "requirements": [
+        "Rapports semestriels",
+        "Respect des normes françaises",
+        "Visibilité AFD sur tous les supports"
+      ]
+    },
+    {
+      "name": "Fondation Bill & Melinda Gates",
+      "type": "FOUNDATION",
+      "contribution": {
+        "amount": 25000000,
+        "currency": "USD",
+        "percentage": 20
+      },
+      "contactPerson": "Sarah Johnson",
+      "email": "s.johnson@gatesfoundation.org",
+      "requirements": [
+        "Rapports mensuels sur les indicateurs clés",
+        "Données désagrégées par genre",
+        "Approche axée sur les résultats",
+        "Innovation et scalabilité"
+      ]
+    }
+  ],
+  "partenaires_exemples": [
+    {
+      "name": "ONG Développement Sans Frontières",
+      "type": "IMPLEMENTING",
+      "role": "Mise en œuvre des activités agricoles et formation des producteurs"
+    },
+    {
+      "name": "Institut National de Recherche Agronomique",
+      "type": "TECHNICAL",
+      "role": "Assistance technique et recherche appliquée"
+    },
+    {
+      "name": "Banque Agricole Locale",
+      "type": "FINANCIAL",
+      "role": "Facilitation de l'accès au crédit pour les bénéficiaires"
+    },
+    {
+      "name": "Conseil Régional",
+      "type": "STRATEGIC",
+      "role": "Coordination et alignement avec les politiques régionales"
+    }
+  ],
+  "guide_utilisation": {
+    "etape_1": "Créer un portfolio en utilisant un des exemples ci-dessus",
+    "etape_2": "Ajouter 2-3 risques en utilisant les exemples de risques",
+    "etape_3": "Documenter 1-2 leçons apprises",
+    "etape_4": "Explorer les différentes vues (Cartes, Tableau, Statistiques)",
+    "etape_5": "Générer un rapport de synthèse",
+    "conseil": "Commencez avec 2-3 portfolios pour bien comprendre le système avant d'en ajouter plus"
+  }
+}
+

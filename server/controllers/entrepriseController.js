@@ -9,6 +9,7 @@ const Message = require('../models/Message');
 const Report = require('../models/Report');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
+const { logAudit } = require('../utils/auditLogger');
 
 // @desc    Obtenir toutes les entreprises
 // @route   GET /api/entreprises
@@ -16,7 +17,25 @@ const mongoose = require('mongoose');
 const getEntreprises = async (req, res) => {
   try {
     const entreprises = await Entreprise.find();
-    res.json(entreprises);
+    
+    // Nettoyer les données pour éviter les objets imbriqués problématiques
+    const cleanedEntreprises = entreprises.map(ent => {
+      const entObj = ent.toObject();
+      
+      // S'assurer que conformite est une chaîne
+      if (entObj.conformite && typeof entObj.conformite === 'object') {
+        entObj.conformite = entObj.conformite.conformite || 'Non vérifié';
+      }
+      
+      // S'assurer que commentaireConformite est une chaîne
+      if (entObj.commentaireConformite && typeof entObj.commentaireConformite === 'object') {
+        entObj.commentaireConformite = entObj.commentaireConformite.commentaireConformite || '';
+      }
+      
+      return entObj;
+    });
+    
+    res.json(cleanedEntreprises);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -38,7 +57,21 @@ const getEntreprise = async (req, res) => {
         message: 'Entreprise non trouvée'
       });
     }
-    res.json(entreprise);
+    
+    // Convertir en objet simple et nettoyer les champs problématiques
+    const entrepriseObj = entreprise.toObject();
+    
+    // S'assurer que conformite est une chaîne
+    if (entrepriseObj.conformite && typeof entrepriseObj.conformite === 'object') {
+      entrepriseObj.conformite = entrepriseObj.conformite.conformite || 'Non vérifié';
+    }
+    
+    // S'assurer que commentaireConformite est une chaîne
+    if (entrepriseObj.commentaireConformite && typeof entrepriseObj.commentaireConformite === 'object') {
+      entrepriseObj.commentaireConformite = entrepriseObj.commentaireConformite.commentaireConformite || '';
+    }
+    
+    res.json(entrepriseObj);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -646,42 +679,60 @@ const updateEntrepriseStatut = async (req, res) => {
     const { id } = req.params;
     const { statut } = req.body;
 
+    console.log('UpdateEntrepriseStatut - ID:', id, 'New Status:', statut);
+
     if (!['Actif', 'En attente', 'Suspendu', 'Inactif'].includes(statut)) {
       return res.status(400).json({
         success: false,
-        message: 'Statut invalide'
+        message: 'Statut invalide. Valeurs acceptées: Actif, En attente, Suspendu, Inactif'
       });
     }
 
-    const entreprise = await Entreprise.findByIdAndUpdate(
-      id,
-      { statut, dateModification: new Date() },
-      { new: true }
-    );
-
-    if (!entreprise) {
+    // Récupérer l'ancien statut avant la mise à jour
+    const oldEntreprise = await Entreprise.findById(id);
+    
+    if (!oldEntreprise) {
       return res.status(404).json({
         success: false,
         message: 'Entreprise non trouvée'
       });
     }
 
-    // Log audit
-    await AuditLog.create({
-      user: req.user?._id,
-      action: 'UPDATE_ENTREPRISE_STATUT',
-      target: 'Entreprise',
-      targetId: id,
-      details: { oldStatut: entreprise.statut, newStatut: statut },
-      ipAddress: req.ip
-    });
+    const oldStatut = oldEntreprise.statut;
+
+    // Mettre à jour le statut
+    const entreprise = await Entreprise.findByIdAndUpdate(
+      id,
+      { statut, dateModification: new Date() },
+      { new: true }
+    );
+
+    console.log('Entreprise updated successfully:', entreprise._id);
+
+    // Log audit (non-bloquant)
+    try {
+      await AuditLog.create({
+        userId: req.user?._id || null,
+        action: 'UPDATE_ENTREPRISE_STATUT',
+        entityType: 'ENTERPRISE',
+        entityId: id,
+        details: { oldStatut, newStatut: statut },
+        ipAddress: req.ip
+      });
+      console.log('Audit log created');
+    } catch (auditError) {
+      console.error('Error creating audit log (non-critical):', auditError.message);
+      // Continue même si l'audit log échoue
+    }
 
     res.json({
       success: true,
-      data: entreprise
+      data: entreprise,
+      message: `Statut changé de "${oldStatut || 'N/A'}" à "${statut}"`
     });
   } catch (error) {
     console.error('Error in updateEntrepriseStatut:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du statut',
@@ -750,6 +801,308 @@ const getEntreprisesEvolution = async (req, res) => {
   }
 };
 
+// Obtenir toutes les informations détaillées d'une entreprise (pour admin)
+const getEntrepriseComplete = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Getting complete data for enterprise:', id);
+
+    // Get enterprise details
+    const entreprise = await Entreprise.findById(id);
+    if (!entreprise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+
+    // Get all related data in parallel
+    const [documents, reports, kpis, messages, visits, controls] = await Promise.all([
+      Document.find({ entreprise: id }).sort({ createdAt: -1 }).limit(50),
+      Report.find({ entreprise: id }).sort({ createdAt: -1 }).limit(50),
+      KPI.find({ entreprise: id }).sort({ date: -1 }).limit(50),
+      Message.find({ entrepriseId: id })
+        .populate('sender', 'nom prenom email role')
+        .populate('recipient', 'nom prenom email role')
+        .sort({ createdAt: -1 })
+        .limit(100),
+      Visit.find({ enterpriseId: id }).sort({ scheduledAt: -1 }).limit(50),
+      Control.find({ entrepriseId: id }).sort({ date: -1 }).limit(50)
+    ]);
+
+    // Calculate statistics
+    const stats = {
+      documents: {
+        total: documents.length,
+        byStatus: documents.reduce((acc, doc) => {
+          acc[doc.status || 'unknown'] = (acc[doc.status || 'unknown'] || 0) + 1;
+          return acc;
+        }, {})
+      },
+      reports: {
+        total: reports.length,
+        byStatus: reports.reduce((acc, rep) => {
+          acc[rep.status || 'unknown'] = (acc[rep.status || 'unknown'] || 0) + 1;
+          return acc;
+        }, {})
+      },
+      kpis: {
+        total: kpis.length,
+        averageScore: kpis.length > 0 
+          ? (kpis.reduce((sum, kpi) => sum + (kpi.score || 0), 0) / kpis.length).toFixed(2)
+          : 0
+      },
+      messages: {
+        total: messages.length,
+        unread: messages.filter(m => !m.read).length
+      },
+      visits: {
+        total: visits.length,
+        byStatus: visits.reduce((acc, visit) => {
+          acc[visit.status || 'unknown'] = (acc[visit.status || 'unknown'] || 0) + 1;
+          return acc;
+        }, {})
+      },
+      controls: {
+        total: controls.length
+      }
+    };
+
+    res.json({
+      success: true,
+      data: {
+        entreprise,
+        documents,
+        reports,
+        kpis,
+        messages,
+        visits,
+        controls,
+        stats
+      }
+    });
+  } catch (error) {
+    console.error('Error in getEntrepriseComplete:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des données complètes',
+      error: error.message
+    });
+  }
+};
+
+// Mettre à jour le statut de conformité d'une entreprise (pour admin uniquement)
+const updateEntrepriseConformite = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { conformite, commentaireConformite } = req.body;
+
+    console.log('UpdateEntrepriseConformite - ID:', id, 'Conformité:', conformite);
+
+    if (!['Conforme', 'Non conforme', 'En cours de vérification', 'Non vérifié'].includes(conformite)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Statut de conformité invalide'
+      });
+    }
+
+    const entreprise = await Entreprise.findByIdAndUpdate(
+      id,
+      { 
+        conformite, 
+        commentaireConformite,
+        derniereVerificationConformite: new Date(),
+        verifiePar: req.user?._id || null,
+        dateModification: new Date()
+      },
+      { new: true }
+    );
+
+    if (!entreprise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+
+    console.log('Conformité mise à jour avec succès:', entreprise._id);
+
+    // Log audit (non-bloquant)
+    try {
+      await AuditLog.create({
+        userId: req.user?._id || null,
+        action: 'UPDATE_ENTREPRISE_CONFORMITE',
+        entityType: 'ENTERPRISE',
+        entityId: id,
+        details: { conformite, commentaireConformite },
+        ipAddress: req.ip
+      });
+    } catch (auditError) {
+      console.error('Error creating audit log (non-critical):', auditError.message);
+    }
+
+    res.json({
+      success: true,
+      data: entreprise,
+      message: `Conformité changée en "${conformite}"`
+    });
+  } catch (error) {
+    console.error('Error in updateEntrepriseConformite:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la conformité',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir l'évolution temporelle d'une entreprise
+const getEntrepriseEvolutionData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Getting evolution data for enterprise:', id);
+
+    // Récupérer l'entreprise actuelle
+    const entreprise = await Entreprise.findById(id);
+    if (!entreprise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+
+    // Récupérer toutes les visites avec snapshots
+    const visits = await Visit.find({ 
+      enterpriseId: id,
+      'report.enterpriseSnapshot': { $exists: true }
+    })
+      .sort({ scheduledAt: 1 })
+      .select('scheduledAt report.enterpriseSnapshot report.submittedAt type');
+
+    // Construire l'évolution du personnel
+    const personnelEvolution = visits.map(visit => ({
+      date: visit.report?.submittedAt || visit.scheduledAt,
+      effectifs: visit.report?.enterpriseSnapshot?.investissementEmploi?.effectifsEmployes || 0,
+      nouveauxEmplois: visit.report?.enterpriseSnapshot?.investissementEmploi?.nouveauxEmploisCrees || 0
+    }));
+
+    // Ajouter les données actuelles
+    personnelEvolution.push({
+      date: new Date(),
+      effectifs: entreprise.investissementEmploi?.effectifsEmployes || 0,
+      nouveauxEmplois: entreprise.investissementEmploi?.nouveauxEmploisCrees || 0
+    });
+
+    // Construire l'évolution financière
+    const financierEvolution = visits.map(visit => ({
+      date: visit.report?.submittedAt || visit.scheduledAt,
+      ca: visit.report?.enterpriseSnapshot?.performanceEconomique?.chiffreAffaires?.montant || 0,
+      couts: visit.report?.enterpriseSnapshot?.performanceEconomique?.coutsProduction?.montant || 0,
+      devise: visit.report?.enterpriseSnapshot?.performanceEconomique?.chiffreAffaires?.devise || 'FCFA'
+    }));
+
+    // Ajouter les données actuelles
+    financierEvolution.push({
+      date: new Date(),
+      ca: entreprise.performanceEconomique?.chiffreAffaires?.montant || 0,
+      couts: entreprise.performanceEconomique?.coutsProduction?.montant || 0,
+      devise: entreprise.performanceEconomique?.chiffreAffaires?.devise || 'FCFA'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        personnel: personnelEvolution,
+        financier: financierEvolution,
+        currentData: {
+          effectifs: entreprise.investissementEmploi?.effectifsEmployes || 0,
+          ca: entreprise.performanceEconomique?.chiffreAffaires?.montant || 0,
+          tresorerie: entreprise.performanceEconomique?.situationTresorerie || 'Normale',
+          conformite: entreprise.conformite || 'Non vérifié'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getEntrepriseEvolutionData:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des données d\'évolution',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir tous les snapshots historiques d'une entreprise
+const getEntrepriseSnapshots = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Getting snapshots for enterprise:', id);
+
+    const visits = await Visit.find({ 
+      enterpriseId: id,
+      'report.enterpriseSnapshot': { $exists: true }
+    })
+      .populate('inspectorId', 'nom prenom email')
+      .populate('requestedBy', 'nom prenom email')
+      .sort({ scheduledAt: -1 })
+      .select('scheduledAt type status report');
+
+    const snapshots = visits.map(visit => ({
+      date: visit.report?.submittedAt || visit.scheduledAt,
+      visitId: visit._id,
+      visitType: visit.type,
+      visitStatus: visit.status,
+      snapshot: visit.report?.enterpriseSnapshot,
+      inspector: visit.inspectorId,
+      outcome: visit.report?.outcome
+    }));
+
+    res.json({
+      success: true,
+      count: snapshots.length,
+      data: snapshots
+    });
+  } catch (error) {
+    console.error('Error in getEntrepriseSnapshots:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des snapshots',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir le journal d'activité d'une entreprise
+const getEntrepriseActivityLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    console.log('Getting activity log for enterprise:', id);
+
+    const logs = await AuditLog.find({ 
+      entityId: id,
+      entityType: 'ENTERPRISE'
+    })
+      .populate('userId', 'nom prenom email')
+      .sort({ timestamp: -1 })
+      .limit(limit);
+
+    res.json({
+      success: true,
+      count: logs.length,
+      data: logs
+    });
+  } catch (error) {
+    console.error('Error in getEntrepriseActivityLog:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du journal d\'activité',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getEntreprises,
   getEntreprise,
@@ -768,5 +1121,10 @@ module.exports = {
   getGlobalStats,
   getEntreprisesAgrees,
   updateEntrepriseStatut,
-  getEntreprisesEvolution
+  getEntreprisesEvolution,
+  getEntrepriseComplete,
+  updateEntrepriseConformite,
+  getEntrepriseEvolutionData,
+  getEntrepriseSnapshots,
+  getEntrepriseActivityLog
 };

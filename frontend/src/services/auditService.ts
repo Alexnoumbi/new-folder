@@ -9,7 +9,7 @@ export interface AuditLogFilters {
 
 export const getAuditLogs = async (filters?: AuditLogFilters): Promise<AuditLog[]> => {
   try {
-    const response = await api.get('/admin/audit/logs', {
+    const response = await api.get('/audit/logs', {
       params: filters,
       timeout: 10000
     });
@@ -27,7 +27,7 @@ export const getAuditLogs = async (filters?: AuditLogFilters): Promise<AuditLog[
 
 export const getAuditLogDetails = async (logId: string): Promise<AuditLog> => {
   try {
-    const response = await api.get(`/admin/audit/logs/${logId}`);
+    const response = await api.get(`/audit/logs/${logId}`);
     const payload = response.data?.data ?? response.data;
     return {
       ...payload,
@@ -40,7 +40,7 @@ export const getAuditLogDetails = async (logId: string): Promise<AuditLog> => {
 };
 
 export const exportAuditLogs = async (filters?: AuditLogFilters): Promise<Blob> => {
-  const response = await api.get('/admin/audit/logs/export', {
+  const response = await api.get('/audit/logs/export', {
     params: filters,
     responseType: 'blob'
   });

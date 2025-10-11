@@ -11,7 +11,7 @@ const app = express();
 app.use(cors({
   origin: ['http://localhost:3000'],
   credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -46,7 +46,10 @@ const routes = {
   portfolio: require('./routes/portfolio'),
   collaboration: require('./routes/collaboration'),
   enhancedReports: require('./routes/enhancedReports'),
-  public: require('./routes/public')
+  public: require('./routes/public'),
+  indicators: require('./routes/indicators'),
+  messages: require('./routes/messages'),
+  workflows: require('./routes/workflows')
 };
 
 // Configuration des routes
@@ -69,6 +72,9 @@ app.use('/api/form-builder', routes.formBuilder);
 app.use('/api/portfolios', routes.portfolio);
 app.use('/api/collaboration', routes.collaboration);
 app.use('/api/enhanced-reports', routes.enhancedReports);
+app.use('/api/indicators', routes.indicators);
+app.use('/api/messages', routes.messages);
+app.use('/api/workflows', routes.workflows);
 
 // Servir les fichiers uploadés
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

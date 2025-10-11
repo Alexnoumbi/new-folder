@@ -238,10 +238,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: <Security />,
       children: [
         { text: 'Utilisateurs', icon: <People />, path: '/admin/users' },
-        { text: 'Sécurité', icon: <Security />, path: '/admin/security' },
-        { text: 'Audit Trail', icon: <Timeline />, path: '/admin/audit-trail' },
-        { text: 'Audit', icon: <Assessment />, path: '/admin/audit' },
-        { text: 'Système', icon: <Security />, path: '/admin/system' }
+        { text: 'Audit', icon: <Assessment />, path: '/admin/audit' }
       ]
     },
     {
@@ -554,6 +551,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               }}
             >
               <Avatar
+                src={user?.avatar}
                 sx={{
                   width: 40,
                   height: 40,
@@ -561,7 +559,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   fontWeight: 700
                 }}
               >
-                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+                {!user?.avatar && `${user?.prenom?.charAt(0)}${user?.nom?.charAt(0)}`}
               </Avatar>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography variant="subtitle2" fontWeight={600} color="text.primary">
@@ -593,8 +591,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   {user?.email}
                 </Typography>
               </Box>
-              <MenuItem onClick={() => { handleClose(); navigate('/admin/profile'); }}>
-                <Avatar sx={{ width: 24, height: 24, mr: 2 }} />
+              <MenuItem onClick={() => { handleClose(); navigate('/admin/settings'); }}>
+                <Avatar src={user?.avatar} sx={{ width: 24, height: 24, mr: 2 }}>
+                  {!user?.avatar && `${user?.prenom?.charAt(0)}${user?.nom?.charAt(0)}`}
+                </Avatar>
                 Mon profil
               </MenuItem>
               <MenuItem onClick={() => { handleClose(); navigate('/admin/settings'); }}>

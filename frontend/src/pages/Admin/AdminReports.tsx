@@ -16,23 +16,32 @@ import {
   IconButton,
   Chip,
   Paper,
-  Stack
+  Stack,
+  TextField,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Download as DownloadIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Description,
+  PlayArrow
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { getReports, generateReport, downloadReport, deleteReport } from '../../services/reportService';
 import { Report, ReportParams } from '../../types/reports.types';
+import { getTemplates, generateFromTemplate } from '../../services/reportTemplateService';
+import { ReportTemplate } from '../../types/reportTemplate.types';
 
 const AdminReports: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
+  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [generating, setGenerating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ReportParams>({
@@ -40,7 +49,8 @@ const AdminReports: React.FC = () => {
     startDate: null,
     endDate: null,
     format: 'pdf',
-    includeCharts: true
+    includeCharts: true,
+    title: ''
   });
 
   const fetchReports = async () => {
@@ -59,7 +69,35 @@ const AdminReports: React.FC = () => {
 
   useEffect(() => {
     fetchReports();
+    fetchTemplates();
   }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const data = await getTemplates();
+      setTemplates(data);
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+    }
+  };
+
+  const handleUseTemplate = async (templateId: string) => {
+    try {
+      setGenerating(true);
+      await generateFromTemplate(templateId);
+      setOpenTemplateDialog(false);
+      setError(null);
+      
+      // Rafraîchir après un court délai
+      setTimeout(() => {
+        fetchReports();
+        setGenerating(false);
+      }, 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors de la génération depuis le template');
+      setGenerating(false);
+    }
+  };
 
   const handleOpenGenerateDialog = () => {
     setFormData({
@@ -67,7 +105,8 @@ const AdminReports: React.FC = () => {
       startDate: new Date(),
       endDate: new Date(),
       format: 'pdf',
-      includeCharts: true
+      includeCharts: true,
+      title: ''
     });
     setFormError(null);
     setOpenDialog(true);
@@ -167,6 +206,14 @@ const AdminReports: React.FC = () => {
             <RefreshIcon />
           </IconButton>
           <Button
+            variant="outlined"
+            startIcon={<Description />}
+            onClick={() => setOpenTemplateDialog(true)}
+            sx={{ mr: 1 }}
+          >
+            Utiliser un Template
+          </Button>
+          <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleOpenGenerateDialog}
@@ -264,6 +311,14 @@ const AdminReports: React.FC = () => {
             </Alert>
           )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Nom du rapport (optionnel)"
+              fullWidth
+              value={formData.title || ''}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Ex: Rapport d'activité Janvier 2025"
+            />
+
             <FormControl fullWidth>
               <InputLabel>Type de Rapport</InputLabel>
               <Select
@@ -329,6 +384,64 @@ const AdminReports: React.FC = () => {
           >
             {generating ? 'Génération...' : 'Générer'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Sélection de Template */}
+      <Dialog open={openTemplateDialog} onClose={() => setOpenTemplateDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Générer un Rapport depuis un Template</DialogTitle>
+        <DialogContent>
+          {templates.length === 0 ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Aucun template disponible. Créez-en un sur la page Templates.
+            </Alert>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 2 }}>
+              {templates.map((template) => (
+                <Card
+                  key={template._id}
+                  sx={{
+                    cursor: 'pointer',
+                    border: 1,
+                    borderColor: 'divider',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: 4
+                    }
+                  }}
+                  onClick={() => handleUseTemplate(template._id)}
+                >
+                  <CardContent>
+                    <Stack spacing={1}>
+                      <Stack direction="row" spacing={1}>
+                        <Chip label={template.type} size="small" color="primary" />
+                        <Chip label={template.format} size="small" variant="outlined" />
+                        {template.isDefault && <Chip label="Par Défaut" size="small" color="success" />}
+                      </Stack>
+                      <Typography variant="h6" fontWeight={600}>
+                        {template.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {template.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {template.sections.length} section(s) • Utilisé {template.usageCount} fois
+                      </Typography>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+          {generating && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <CircularProgress />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTemplateDialog(false)}>Fermer</Button>
         </DialogActions>
       </Dialog>
     </Box>

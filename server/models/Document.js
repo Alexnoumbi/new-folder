@@ -6,10 +6,15 @@ const documentSchema = new mongoose.Schema({
     ref: 'Entreprise',
     required: true
   },
+  name: {
+    type: String,
+    trim: true,
+    maxlength: 200
+  },
   type: {
     type: String,
     required: true,
-    enum: ['BUSINESS_PLAN', 'FINANCIAL_STATEMENT', 'TAX_CERTIFICATE', 'SOCIAL_SECURITY', 'TRADE_REGISTER']
+    enum: ['BUSINESS_PLAN', 'FINANCIAL_STATEMENT', 'TAX_CERTIFICATE', 'SOCIAL_SECURITY', 'TRADE_REGISTER', 'OTHER']
   },
   required: {
     type: Boolean,
@@ -35,7 +40,13 @@ const documentSchema = new mongoose.Schema({
     ref: 'User'
   },
   validatedAt: Date,
-  comment: String
+  comment: String,
+  ocrText: {
+    type: String
+  },
+  ocrConfidence: {
+    type: Number
+  }
 }, {
   timestamps: true
 });

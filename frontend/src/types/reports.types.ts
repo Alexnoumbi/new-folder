@@ -25,6 +25,7 @@ export interface ReportParams {
     startDate: Date | null;
     endDate: Date | null;
     includeCharts: boolean;
+    title?: string;
     dateDebut?: string;
     dateFin?: string;
     entrepriseId?: string;

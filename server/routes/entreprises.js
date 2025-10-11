@@ -18,7 +18,12 @@ const {
   getGlobalStats,
   getEntreprisesAgrees,
   updateEntrepriseStatut,
-  getEntreprisesEvolution
+  getEntreprisesEvolution,
+  getEntrepriseComplete,
+  updateEntrepriseConformite,
+  getEntrepriseEvolutionData,
+  getEntrepriseSnapshots,
+  getEntrepriseActivityLog
 } = require('../controllers/entrepriseController');
 
 // Routes publiques et générales
@@ -28,9 +33,11 @@ router.get('/', getEntreprises);
 router.get('/admin/stats', getGlobalStats);
 router.get('/admin/agrees', getEntreprisesAgrees);
 router.get('/admin/evolution', getEntreprisesEvolution);
+router.get('/:id/complete', getEntrepriseComplete);
 router.post('/', createEntreprise);
 router.delete('/:id', deleteEntreprise);
 router.patch('/:id/statut', updateEntrepriseStatut);
+router.patch('/:id/conformite', updateEntrepriseConformite);
 
 // Routes pour les statistiques et informations
 router.get('/stats', getEntrepriseStats);
@@ -48,5 +55,10 @@ router.get('/:id/affiliations', getEntrepriseAffiliations);
 router.get('/:id/kpi-history', getEntrepriseKPIHistory);
 router.get('/:id/messages', getEntrepriseMessages);
 router.get('/:id/reports', getEntrepriseReports);
+
+// Routes pour évolution et traçabilité
+router.get('/:id/evolution', getEntrepriseEvolutionData);
+router.get('/:id/snapshots', getEntrepriseSnapshots);
+router.get('/:id/activity-log', getEntrepriseActivityLog);
 
 module.exports = router;

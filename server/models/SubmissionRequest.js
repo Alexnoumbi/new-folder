@@ -23,6 +23,21 @@ const SubmissionRequestSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  documents: [{
+    filename: String,
+    originalName: String,
+    path: String,
+    mimetype: String,
+    size: Number,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  workflowInstance: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'WorkflowInstance'
+  },
   status: {
     type: String,
     enum: ['NEW', 'CONTACTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'],

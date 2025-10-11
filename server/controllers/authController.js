@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const Entreprise = require('../models/Entreprise');
+const { logAuth, logAudit } = require('../utils/auditLogger');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -58,6 +59,17 @@ const register = async (req, res) => {
       entrepriseId
     });
 
+    // Log l'inscription
+    await logAudit({
+      user,
+      action: 'CREATE',
+      entityType: 'USER',
+      entityId: user._id,
+      details: { typeCompte, role, email },
+      req,
+      status: 'success'
+    });
+
     res.status(201).json({
       success: true,
       data: {
@@ -69,7 +81,9 @@ const register = async (req, res) => {
           role: user.role,
           typeCompte: user.typeCompte,
           telephone: user.telephone,
-          entrepriseId: user.entrepriseId || null
+          entrepriseId: user.entrepriseId || null,
+          avatar: user.avatar,
+          status: user.status
         }
       }
     });
@@ -132,6 +146,9 @@ const login = async (req, res) => {
         dashboard = '/dashboard';
     }
 
+    // Log la connexion réussie
+    await logAuth(user, 'LOGIN', req, true);
+
     res.json({
       success: true,
       data: {
@@ -143,7 +160,9 @@ const login = async (req, res) => {
           role: user.role,
           typeCompte: user.typeCompte,
           entrepriseId: user.entrepriseId,
-          telephone: user.telephone
+          telephone: user.telephone,
+          avatar: user.avatar,
+          status: user.status
         },
         dashboard
       }
@@ -162,6 +181,11 @@ const login = async (req, res) => {
 // @access  Private
 const logout = async (req, res) => {
   try {
+    // Log la déconnexion
+    if (req.user) {
+      await logAuth(req.user, 'LOGOUT', req, true);
+    }
+    
     res.json({
       success: true,
       message: 'Déconnexion réussie'

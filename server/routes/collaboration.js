@@ -32,6 +32,11 @@ router.get('/workflows/my-approvals', getMyPendingApprovals);
 router.post('/workflows/instances/:id/approve', approveStep);
 router.post('/workflows/instances/:id/reject', rejectStep);
 
+// ============ APPROVALS (Simplified for Admin UI) ============
+router.get('/approvals', getMyPendingApprovals);
+router.post('/approvals/:id/approve', approveStep);
+router.post('/approvals/:id/reject', rejectStep);
+
 // ============ STATISTIQUES ============
 router.get('/stats', getCollaborationStats);
 

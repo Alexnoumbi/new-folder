@@ -258,19 +258,75 @@ exports.getWorkflowInstances = async (req, res) => {
 // Obtenir mes approbations en attente
 exports.getMyPendingApprovals = async (req, res) => {
   try {
-    const instances = await WorkflowInstance.find({
-      status: 'IN_PROGRESS',
-      'stepHistory.assignedTo': req.user._id,
-      'stepHistory.completedAt': { $exists: false }
-    })
+    console.log('[APPROVALS] Fetching pending approvals...');
+    
+    const SubmissionRequest = require('../models/SubmissionRequest');
+    
+    // Récupérer TOUTES les instances de workflow en attente
+    const query = { status: 'IN_PROGRESS' };
+    
+    const instances = await WorkflowInstance.find(query)
       .populate('workflow')
-      .populate('initiatedBy', 'nom prenom email');
+      .populate('initiatedBy', 'nom prenom email')
+      .populate('entityId')
+      .lean();
+    
+    console.log(`[APPROVALS] Found ${instances.length} workflow instances`);
+    
+    // Transformer les données au format attendu par le frontend
+    const formattedApprovals = await Promise.all(instances.map(async (instance) => {
+      const currentStepHistory = instance.stepHistory && instance.stepHistory.length > 0 
+        ? instance.stepHistory[instance.stepHistory.length - 1] 
+        : null;
+      
+      let itemName = instance.workflow?.name || 'Workflow';
+      let requestedBy = {
+        nom: instance.initiatedBy?.nom || 'Public',
+        prenom: instance.initiatedBy?.prenom || ''
+      };
+      
+      // Si c'est une soumission de demande, récupérer les détails
+      if (instance.entityType === 'SUBMISSION_REQUEST' && instance.entityId) {
+        try {
+          const submission = await SubmissionRequest.findById(instance.entityId);
+          if (submission) {
+            itemName = `${submission.projet} - ${submission.entreprise}`;
+            requestedBy = {
+              nom: submission.email.split('@')[0],
+              prenom: ''
+            };
+          }
+        } catch (err) {
+          console.error('[APPROVALS] Error fetching submission:', err);
+        }
+      }
+      
+      return {
+        _id: instance._id,
+        itemType: instance.entityType || 'CUSTOM',
+        itemName: itemName,
+        requestedBy: requestedBy,
+        workflow: {
+          name: instance.workflow?.name || 'Workflow',
+          currentStep: currentStepHistory?.stepName || 'Étape en cours'
+        },
+        priority: determinePriority(instance),
+        dueDate: instance.sla?.expectedCompletionAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: mapStatus(instance.status),
+        createdAt: instance.createdAt,
+        entityId: instance.entityId,
+        documentsCount: 0 // Sera mis à jour si on trouve la soumission
+      };
+    }));
+    
+    console.log(`[APPROVALS] Formatted ${formattedApprovals.length} approvals`);
     
     res.json({
       success: true,
-      data: instances
+      data: formattedApprovals
     });
   } catch (error) {
+    console.error('[APPROVALS] Error:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -278,11 +334,44 @@ exports.getMyPendingApprovals = async (req, res) => {
   }
 };
 
+// Helper pour déterminer la priorité basée sur le SLA
+function determinePriority(instance) {
+  if (!instance.sla || !instance.sla.expectedCompletionAt) return 'MEDIUM';
+  
+  const now = new Date();
+  const dueDate = new Date(instance.sla.expectedCompletionAt);
+  const hoursRemaining = (dueDate - now) / (1000 * 60 * 60);
+  
+  if (hoursRemaining < 0) return 'URGENT';
+  if (hoursRemaining < 24) return 'HIGH';
+  if (hoursRemaining < 72) return 'MEDIUM';
+  return 'LOW';
+}
+
+// Helper pour mapper le statut
+function mapStatus(status) {
+  switch (status) {
+    case 'PENDING':
+    case 'IN_PROGRESS':
+      return 'PENDING';
+    case 'APPROVED':
+      return 'APPROVED';
+    case 'REJECTED':
+      return 'REJECTED';
+    default:
+      return 'PENDING';
+  }
+}
+
 // Approuver une étape
 exports.approveStep = async (req, res) => {
   try {
+    console.log('[APPROVE] Approving workflow instance:', req.params.id);
     const { comment, attachments } = req.body;
     
+    const SubmissionRequest = require('../models/SubmissionRequest');
+    
+    // Vérifier d'abord si c'est un workflow instance réel
     const instance = await WorkflowInstance.findById(req.params.id);
     if (!instance) {
       return res.status(404).json({
@@ -291,13 +380,30 @@ exports.approveStep = async (req, res) => {
       });
     }
     
-    await instance.approveStep(req.user._id, comment, attachments);
+    // Utiliser l'utilisateur connecté ou null
+    const userId = req.user?._id || req.user?.id || null;
+    
+    await instance.approveStep(userId, comment, attachments);
+    
+    // Mettre à jour le statut de la soumission si c'est une SUBMISSION_REQUEST
+    if (instance.entityType === 'SUBMISSION_REQUEST' && instance.status === 'APPROVED') {
+      try {
+        await SubmissionRequest.findByIdAndUpdate(instance.entityId, {
+          status: 'APPROVED'
+        });
+        console.log('[APPROVE] Submission status updated to APPROVED');
+      } catch (err) {
+        console.error('[APPROVE] Error updating submission status:', err);
+      }
+    }
     
     res.json({
       success: true,
+      message: 'Approbation effectuée avec succès',
       data: instance
     });
   } catch (error) {
+    console.error('[APPROVE] Error:', error);
     res.status(400).json({
       success: false,
       message: error.message
@@ -308,7 +414,10 @@ exports.approveStep = async (req, res) => {
 // Rejeter
 exports.rejectStep = async (req, res) => {
   try {
+    console.log('[REJECT] Rejecting workflow instance:', req.params.id);
     const { reason } = req.body;
+    
+    const SubmissionRequest = require('../models/SubmissionRequest');
     
     if (!reason) {
       return res.status(400).json({
@@ -317,6 +426,7 @@ exports.rejectStep = async (req, res) => {
       });
     }
     
+    // Vérifier d'abord si c'est un workflow instance réel
     const instance = await WorkflowInstance.findById(req.params.id);
     if (!instance) {
       return res.status(404).json({
@@ -325,13 +435,30 @@ exports.rejectStep = async (req, res) => {
       });
     }
     
-    await instance.reject(req.user._id, reason);
+    // Utiliser l'utilisateur connecté ou null
+    const userId = req.user?._id || req.user?.id || null;
+    
+    await instance.reject(userId, reason);
+    
+    // Mettre à jour le statut de la soumission si c'est une SUBMISSION_REQUEST
+    if (instance.entityType === 'SUBMISSION_REQUEST') {
+      try {
+        await SubmissionRequest.findByIdAndUpdate(instance.entityId, {
+          status: 'REJECTED'
+        });
+        console.log('[REJECT] Submission status updated to REJECTED');
+      } catch (err) {
+        console.error('[REJECT] Error updating submission status:', err);
+      }
+    }
     
     res.json({
       success: true,
+      message: 'Rejet effectué avec succès',
       data: instance
     });
   } catch (error) {
+    console.error('[REJECT] Error:', error);
     res.status(400).json({
       success: false,
       message: error.message

@@ -7,6 +7,7 @@ export interface BaseUser {
     status: 'active' | 'inactive' | 'pending';
     telephone?: string;
     entreprise?: string;
+    avatar?: string;
 }
 
 export interface User extends BaseUser {

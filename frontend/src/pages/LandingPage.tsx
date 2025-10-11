@@ -33,7 +33,9 @@ import {
   Menu as MenuIcon,
   Insights,
   Analytics,
-  Send
+  Send,
+  AttachFile,
+  Close
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -52,6 +54,18 @@ const LandingPage: React.FC = () => {
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState(false);
   const [requestError, setRequestError] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +73,24 @@ const LandingPage: React.FC = () => {
     setRequestError('');
 
     try {
-      await axios.post('http://localhost:5000/api/public/submission-requests', requestForm);
+      const formDataToSend = new FormData();
+      formDataToSend.append('entreprise', requestForm.entreprise);
+      formDataToSend.append('email', requestForm.email);
+      formDataToSend.append('telephone', requestForm.telephone);
+      formDataToSend.append('projet', requestForm.projet);
+      formDataToSend.append('description', requestForm.description);
+
+      // Ajouter les fichiers
+      attachedFiles.forEach((file, index) => {
+        formDataToSend.append('documents', file);
+      });
+
+      await axios.post('http://localhost:5000/api/public/submission-requests', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
       setRequestSuccess(true);
       setRequestForm({
         entreprise: '',
@@ -68,6 +99,7 @@ const LandingPage: React.FC = () => {
         projet: '',
         description: ''
       });
+      setAttachedFiles([]);
       setTimeout(() => setRequestSuccess(false), 5000);
     } catch (err: any) {
       setRequestError(err.response?.data?.message || 'Erreur lors de l\'envoi de la demande');
@@ -538,6 +570,69 @@ const LandingPage: React.FC = () => {
                     sx: { borderRadius: 2 }
                   }}
                 />
+                
+                {/* Section Upload de Documents */}
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Documents joints (optionnel)
+                  </Typography>
+                  <input
+                    accept="*/*"
+                    style={{ display: 'none' }}
+                    id="file-upload"
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                  />
+                  <label htmlFor="file-upload">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<AttachFile />}
+                      fullWidth
+                      sx={{ borderRadius: 2, textTransform: 'none', mb: 1 }}
+                    >
+                      Joindre des Documents
+                    </Button>
+                  </label>
+                  
+                  {/* Liste des fichiers */}
+                  {attachedFiles.length > 0 && (
+                    <Stack spacing={1} mt={2}>
+                      {attachedFiles.map((file, index) => (
+                        <Paper
+                          key={index}
+                          sx={{
+                            p: 1.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            borderRadius: 2
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <AttachFile fontSize="small" color="primary" />
+                            <Typography variant="body2" fontWeight={500}>
+                              {file.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              ({(file.size / 1024).toFixed(1)} KB)
+                            </Typography>
+                          </Stack>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveFile(index)}
+                            sx={{ color: 'error.main' }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+
                 <Button
                   type="submit"
                   variant="contained"

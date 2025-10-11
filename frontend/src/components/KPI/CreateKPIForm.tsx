@@ -18,6 +18,7 @@ interface CreateKPIFormProps {
 const CreateKPIForm: React.FC<CreateKPIFormProps> = ({ onSuccess }) => {
     const [formData, setFormData] = useState({
         name: '',
+        code: '',
         description: '',
         type: 'NUMERIC' as const,
         unit: '',
@@ -54,6 +55,7 @@ const CreateKPIForm: React.FC<CreateKPIFormProps> = ({ onSuccess }) => {
             await createKPI(kpiData);
             setFormData({
                 name: '',
+                code: '',
                 description: '',
                 type: 'NUMERIC',
                 unit: '',
@@ -91,6 +93,15 @@ const CreateKPIForm: React.FC<CreateKPIFormProps> = ({ onSuccess }) => {
                         onChange={handleChange}
                     />
                     <TextField
+                        required
+                        fullWidth
+                        label="Code"
+                        name="code"
+                        value={formData.code}
+                        onChange={handleChange}
+                        placeholder="KPI-001"
+                    />
+                    <TextField
                         fullWidth
                         label="Description"
                         name="description"
@@ -98,6 +109,7 @@ const CreateKPIForm: React.FC<CreateKPIFormProps> = ({ onSuccess }) => {
                         onChange={handleChange}
                         multiline
                         rows={1}
+                        sx={{ gridColumn: 'span 2' }}
                     />
                     <TextField
                         required

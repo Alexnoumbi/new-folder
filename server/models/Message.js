@@ -9,7 +9,7 @@ const messageSchema = new mongoose.Schema({
     recipient: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false  // Optionnel pour chats d'entreprise généraux
     },
     entrepriseId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -36,5 +36,9 @@ const messageSchema = new mongoose.Schema({
 // Index pour améliorer les performances des requêtes
 messageSchema.index({ sender: 1, recipient: 1 });
 messageSchema.index({ entrepriseId: 1 });
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ read: 1 });
+// Index textuel pour la recherche
+messageSchema.index({ content: 'text' });
 
 module.exports = mongoose.model('Message', messageSchema);

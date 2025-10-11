@@ -1,21 +1,54 @@
 const ResultsFramework = require('../models/ResultsFramework');
 const Indicator = require('../models/Indicator');
 
+// Obtenir tous les cadres de résultats
+exports.getAllFrameworks = async (req, res) => {
+  try {
+    const { entrepriseId, status } = req.query;
+    
+    const filter = {};
+    if (entrepriseId) filter.entreprise = entrepriseId;
+    if (status) filter.status = status;
+
+    const frameworks = await ResultsFramework.find(filter)
+      .populate('entreprise', 'identification.nomEntreprise nom name')
+      .populate('project', 'nom name')
+      .populate('createdBy', 'nom prenom email')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      data: frameworks
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Créer un nouveau cadre de résultats
 exports.createFramework = async (req, res) => {
   try {
     const framework = new ResultsFramework({
       ...req.body,
-      createdBy: req.user._id
+      createdBy: req.user?._id || '000000000000000000000000'
     });
     
     await framework.save();
     
+    const populatedFramework = await ResultsFramework.findById(framework._id)
+      .populate('entreprise', 'identification.nomEntreprise nom name')
+      .populate('project', 'nom name');
+    
     res.status(201).json({
       success: true,
-      data: framework
+      data: populatedFramework,
+      message: 'Cadre de résultats créé avec succès'
     });
   } catch (error) {
+    console.error('Error creating framework:', error);
     res.status(400).json({
       success: false,
       message: error.message
@@ -86,7 +119,7 @@ exports.updateFramework = async (req, res) => {
       req.params.id,
       {
         ...req.body,
-        updatedBy: req.user._id,
+        updatedBy: req.user?._id || '000000000000000000000000',
         updatedAt: Date.now()
       },
       { new: true, runValidators: true }
@@ -124,7 +157,7 @@ exports.addOutcome = async (req, res) => {
     }
     
     framework.outcomes.push(req.body);
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -152,7 +185,7 @@ exports.addOutput = async (req, res) => {
     }
     
     framework.outputs.push(req.body);
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -180,7 +213,7 @@ exports.addActivity = async (req, res) => {
     }
     
     framework.activities.push(req.body);
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -216,7 +249,7 @@ exports.updateActivityStatus = async (req, res) => {
     if (status) activity.status = status;
     if (progressPercentage !== undefined) activity.progressPercentage = progressPercentage;
     
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -288,7 +321,7 @@ exports.linkIndicator = async (req, res) => {
         });
     }
     
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -346,7 +379,7 @@ exports.updateTheoryOfChange = async (req, res) => {
     }
     
     framework.theoryOfChange = req.body;
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({
@@ -374,7 +407,7 @@ exports.addRisk = async (req, res) => {
     }
     
     framework.risks.push(req.body);
-    framework.updatedBy = req.user._id;
+    framework.updatedBy = req.user?._id || '000000000000000000000000';
     await framework.save();
     
     res.json({

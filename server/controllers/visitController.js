@@ -5,22 +5,71 @@ const fs = require('fs');
 const { generatePDF } = require('../utils/reports/pdfGenerator');
 const { uploadToS3 } = require('../utils/s3');
 
+// @desc    Obtenir TOUTES les visites (pour stats globales)
+// @route   GET /api/visites/all
+exports.getAllVisits = async (req, res) => {
+  try {
+    console.log('GetAllVisits - Fetching all visits...');
+    
+    const visits = await Visit.find()
+      .populate('inspectorId', 'nom prenom')
+      .populate('enterpriseId', 'identification.nomEntreprise nom name statut')
+      .populate('requestedBy', 'nom prenom email')
+      .sort({ scheduledAt: -1 })
+      .lean(); // Utiliser lean() pour meilleures performances
+    
+    console.log(`Found ${visits.length} total visits`);
+    
+    res.json({
+      success: true,
+      count: visits.length,
+      data: visits
+    });
+  } catch (error) {
+    console.error('Error getting all visits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des visites',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Obtenir les visites d'une entreprise
 // @route   GET /api/visites/enterprise/:enterpriseId
 exports.getEnterpriseVisits = async (req, res) => {
   try {
+    console.log('🔍 [VISIT] GetEnterpriseVisits called for:', req.params.enterpriseId);
+    
     const visits = await Visit.find({ enterpriseId: req.params.enterpriseId })
       .populate('inspectorId', 'nom prenom')
       .populate('enterpriseId')
+      .populate('requestedBy', 'nom prenom email')
       .sort({ scheduledAt: -1 });
+    
+    console.log(`✅ [VISIT] Found ${visits.length} visits for enterprise ${req.params.enterpriseId}`);
+    if (visits.length > 0) {
+      console.log('📝 [VISIT] Sample visit:', {
+        id: visits[0]._id,
+        status: visits[0].status,
+        type: visits[0].type,
+        scheduledAt: visits[0].scheduledAt,
+        enterpriseId: visits[0].enterpriseId
+      });
+    } else {
+      console.log('⚠️ [VISIT] No visits found for this enterprise');
+    }
+    
     res.json({
       success: true,
       data: visits
     });
   } catch (error) {
+    console.error('❌ [VISIT] Error getting enterprise visits:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des visites'
+      message: 'Erreur lors de la récupération des visites',
+      error: error.message
     });
   }
 };
@@ -31,27 +80,46 @@ exports.requestVisit = async (req, res) => {
   try {
     const { enterpriseId, scheduledAt, type, comment } = req.body;
 
+    console.log('🆕 [VISIT] RequestVisit called');
+    console.log('📝 [VISIT] Data:', { enterpriseId, scheduledAt, type, comment });
+
     if (!enterpriseId || !scheduledAt || !type) {
-      return res.status(400).json({ success: false, message: 'enterpriseId, scheduledAt et type sont requis' });
+      console.log('❌ [VISIT] Missing required fields');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'enterpriseId, scheduledAt et type sont requis' 
+      });
     }
 
     const visit = await Visit.create({
       enterpriseId,
-      requestedBy: req.user.id,
+      requestedBy: req.user?.id || req.user?._id || null,
       scheduledAt: new Date(scheduledAt),
       type,
       comment,
       status: 'SCHEDULED'
     });
 
+    console.log('✅ [VISIT] Visit created successfully!');
+    console.log('📋 [VISIT] Details:', {
+      _id: visit._id,
+      enterpriseId: visit.enterpriseId,
+      status: visit.status,
+      type: visit.type,
+      scheduledAt: visit.scheduledAt
+    });
+
     res.status(201).json({
       success: true,
-      data: visit
+      data: visit,
+      message: 'Visite planifiée avec succès'
     });
   } catch (error) {
+    console.error('❌ [VISIT] Error creating visit:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la création de la visite'
+      message: 'Erreur lors de la création de la visite',
+      error: error.message
     });
   }
 };
@@ -166,6 +234,10 @@ exports.updateVisitStatus = async (req, res) => {
 exports.submitVisitReport = async (req, res) => {
   try {
     const { content, outcome, reporterName, enterpriseData } = req.body;
+    
+    console.log('SubmitVisitReport for visit:', req.params.id);
+    console.log('Payload:', { content: content?.length, outcome, reporterName });
+    
     const visit = await Visit.findById(req.params.id);
 
     if (!visit) {
@@ -176,7 +248,10 @@ exports.submitVisitReport = async (req, res) => {
     }
 
     if (visit.report && visit.report.submittedAt) {
-      return res.status(400).json({ success: false, message: 'Le rapport existe déjà et ne peut pas être modifié' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Le rapport existe déjà et ne peut pas être modifié' 
+      });
     }
 
     // Snapshot des données de l'entreprise au moment du rapport
@@ -190,22 +265,32 @@ exports.submitVisitReport = async (req, res) => {
       content: content || '',
       outcome: outcome || 'COMPLIANT',
       reporterName: reporterName || (req.user?.nom || req.user?.email || 'Inspecteur'),
-      enterpriseSnapshot,
-      submittedBy: req.user.id,
+      enterpriseSnapshot: enterpriseSnapshot,
+      submittedBy: req.user?.id || req.user?._id || null,
       submittedAt: new Date()
     };
 
-    visit.status = 'COMPLETED';
+    // Ne pas changer automatiquement le statut à COMPLETED
+    // La visite reste SCHEDULED jusqu'à ce qu'elle soit marquée manuellement comme terminée
+    // Cela permet au rapport d'être soumis tout en gardant la visite dans "à venir"
+    visit.lastUpdatedBy = req.user?.id || req.user?._id || null;
+    visit.lastUpdatedAt = new Date();
+    
     await visit.save();
+
+    console.log('Report submitted successfully');
 
     res.json({
       success: true,
-      data: visit
+      data: visit,
+      message: 'Rapport soumis avec succès'
     });
   } catch (error) {
+    console.error('Error submitting report:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la soumission du rapport'
+      message: 'Erreur lors de la soumission du rapport',
+      error: error.message
     });
   }
 };
@@ -214,9 +299,12 @@ exports.submitVisitReport = async (req, res) => {
 // @route   GET /api/visites/:id/report/download
 exports.downloadReport = async (req, res) => {
   try {
+    console.log('DownloadReport for visit:', req.params.id);
+    
     const visit = await Visit.findById(req.params.id)
       .populate('inspectorId', 'nom prenom email')
-      .populate('enterpriseId');
+      .populate('enterpriseId')
+      .populate('requestedBy', 'nom prenom email');
 
     if (!visit) {
       return res.status(404).json({
@@ -225,10 +313,10 @@ exports.downloadReport = async (req, res) => {
       });
     }
 
-    if (!visit.report) {
+    if (!visit.report || !visit.report.content) {
       return res.status(404).json({
         success: false,
-        message: 'Rapport non disponible'
+        message: 'Rapport non disponible pour cette visite'
       });
     }
 
@@ -243,24 +331,30 @@ exports.downloadReport = async (req, res) => {
       type: 'visit',
       createdAt: new Date().toISOString(),
       startDate: visit.scheduledAt || new Date(),
-      endDate: visit.submittedAt || new Date(),
+      endDate: visit.report.submittedAt || new Date(),
       visit,
     };
 
     await generatePDF(reportData, filePath, false);
+
+    console.log('PDF generated successfully');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     const stream = fs.createReadStream(filePath);
     stream.pipe(res);
     stream.on('close', () => {
-      // Optionnel: supprimer le fichier temporaire
-      fs.unlink(filePath, () => {});
+      // Supprimer le fichier temporaire après envoi
+      fs.unlink(filePath, (err) => {
+        if (err) console.error('Error deleting temp PDF:', err);
+      });
     });
   } catch (error) {
+    console.error('Error downloading report:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors du téléchargement du rapport'
+      message: 'Erreur lors du téléchargement du rapport',
+      error: error.message
     });
   }
 };

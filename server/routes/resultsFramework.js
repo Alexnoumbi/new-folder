@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getAllFrameworks,
   createFramework,
   getFrameworksByProject,
   getFrameworkById,
@@ -18,6 +19,7 @@ const {
 } = require('../controllers/resultsFrameworkController');
 
 // Routes de base
+router.get('/', getAllFrameworks);
 router.post('/', createFramework);
 router.get('/project/:projectId', getFrameworksByProject);
 router.get('/:id', getFrameworkById);

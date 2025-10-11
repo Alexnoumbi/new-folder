@@ -12,35 +12,42 @@ import {
   useTheme,
   alpha,
   Chip,
-  Avatar,
   Paper,
   Tooltip,
   IconButton,
-  LinearProgress
+  LinearProgress,
+  Divider
 } from '@mui/material';
 import { default as Grid } from '@mui/material/GridLegacy';
 import {
-  Business,
-  Assessment,
-  Description,
-  CalendarToday,
-  TrendingUp,
+  People,
+  AttachMoney,
+  AccountBalance,
   CheckCircle,
-  Warning,
-  ArrowUpward,
   Refresh,
   Download,
-  FilterList,
+  TrendingUp,
   TrendingDown,
-  Timeline,
-  Speed
+  CalendarToday,
+  Lightbulb,
+  Timeline as TimelineIcon,
+  Assessment
 } from '@mui/icons-material';
-import { getEntrepriseStats, EntrepriseStats } from '../../services/entrepriseService';
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { loadEnterpriseDashboard } from '../../services/authService';
-import ComplianceTrafficLight from '../../components/EntrepriseDashboard/ComplianceTrafficLight';
+import { Navigate } from 'react-router-dom';
 import VisitsCalendar from '../../components/EntrepriseDashboard/VisitsCalendar';
+import PersonnelEvolutionChart from '../../components/EntrepriseDashboard/PersonnelEvolutionChart';
+import BudgetEvolutionChart from '../../components/EntrepriseDashboard/BudgetEvolutionChart';
+import FinancementPieChart from '../../components/EntrepriseDashboard/FinancementPieChart';
+import InnovationRadarChart from '../../components/EntrepriseDashboard/InnovationRadarChart';
+import RevisionsTimeline from '../../components/EntrepriseDashboard/RevisionsTimeline';
+import ActivityFeed from '../../components/EntrepriseDashboard/ActivityFeed';
+import { 
+  getEntreprise,
+  getEntrepriseEvolutionData,
+  getEntrepriseSnapshots,
+  getEntrepriseActivityLog
+} from '../../services/entrepriseService';
 
 interface MetricCardProps {
   title: string;
@@ -50,7 +57,6 @@ interface MetricCardProps {
   icon: React.ReactNode;
   color?: string;
   subtitle?: string;
-  progress?: number;
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ 
@@ -60,8 +66,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   trend, 
   icon, 
   color = 'primary',
-  subtitle,
-  progress 
+  subtitle
 }) => {
   const theme = useTheme();
   
@@ -129,31 +134,6 @@ const MetricCard: React.FC<MetricCardProps> = ({
           </Box>
         </Stack>
         
-        {progress !== undefined && (
-          <Box mb={1}>
-            <Stack direction="row" justifyContent="space-between" mb={0.5}>
-              <Typography variant="caption" color="text.secondary">
-                Progression
-              </Typography>
-              <Typography variant="caption" fontWeight={600}>
-                {progress}%
-              </Typography>
-            </Stack>
-            <LinearProgress 
-              variant="determinate" 
-              value={progress} 
-              sx={{ 
-                height: 6, 
-                borderRadius: 3,
-                bgcolor: alpha(getColorMain(), 0.1),
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: getColorMain()
-                }
-              }} 
-            />
-          </Box>
-        )}
-        
         {change !== undefined && (
           <Stack direction="row" alignItems="center" spacing={0.5} mt={1}>
             <Box 
@@ -173,7 +153,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary">
-              vs mois dernier
+              vs dernière révision
             </Typography>
           </Stack>
         )}
@@ -184,27 +164,78 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
 const EnterpriseDashboard: React.FC = () => {
   const theme = useTheme();
-  const [stats, setStats] = useState<EntrepriseStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const navigate = useNavigate();
+  
+  const [entreprise, setEntreprise] = useState<any>(null);
+  const [evolution, setEvolution] = useState<any>(null);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const loadDashboard = async () => {
+      if (!user?.entrepriseId) return;
+      
       try {
-        const storedDashboard = localStorage.getItem('enterpriseDashboard');
-        if (storedDashboard) {
-          setStats(JSON.parse(storedDashboard));
-          setLoading(false);
-          return;
-        }
-        if (user && user.typeCompte === 'entreprise') {
-          const data = await loadEnterpriseDashboard(user);
-          if (data?.dashboard) {
-            setStats(data.dashboard);
+        setLoading(true);
+        
+        // Charger toutes les données en parallèle
+        const [entData, evolData, snapshotsData, activitiesData] = await Promise.all([
+          getEntreprise(user.entrepriseId),
+          getEntrepriseEvolutionData(user.entrepriseId),
+          getEntrepriseSnapshots(user.entrepriseId),
+          getEntrepriseActivityLog(user.entrepriseId, 10)
+        ]);
+
+        // Nettoyer les données pour éviter les objets React invalides
+        const cleanObjectData = (obj: any): any => {
+          if (obj === null || obj === undefined) return obj;
+          if (Array.isArray(obj)) return obj.map(item => cleanObjectData(item));
+          
+          if (typeof obj === 'object' && obj.constructor === Object) {
+            const cleaned: any = {};
+            for (const key in obj) {
+              if (obj.hasOwnProperty(key)) {
+                const value = obj[key];
+                
+                // Traitement spécial pour conformite
+                if (key === 'conformite') {
+                  if (typeof value === 'object' && value !== null) {
+                    cleaned[key] = value.conformite || 'Non vérifié';
+                  } else if (typeof value === 'string') {
+                    cleaned[key] = value;
+                  } else {
+                    cleaned[key] = 'Non vérifié';
+                  }
+                  continue;
+                }
+                
+                // Traitement spécial pour commentaireConformite
+                if (key === 'commentaireConformite') {
+                  if (typeof value === 'object' && value !== null) {
+                    cleaned[key] = value.commentaireConformite || '';
+                  } else if (typeof value === 'string') {
+                    cleaned[key] = value;
+                  } else {
+                    cleaned[key] = '';
+                  }
+                  continue;
+                }
+                
+                cleaned[key] = cleanObjectData(value);
+              }
+            }
+            return cleaned;
           }
-        }
+          
+          return obj;
+        };
+
+        setEntreprise(cleanObjectData(entData));
+        setEvolution(cleanObjectData(evolData));
+        setSnapshots(snapshotsData);
+        setActivities(activitiesData);
       } catch (err) {
         console.error('Error loading dashboard:', err);
         setError('Erreur lors du chargement des données');
@@ -249,7 +280,7 @@ const EnterpriseDashboard: React.FC = () => {
     );
   }
 
-  if (!stats) {
+  if (!entreprise || !evolution) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="warning" sx={{ borderRadius: 3 }}>
@@ -259,85 +290,64 @@ const EnterpriseDashboard: React.FC = () => {
     );
   }
 
-  const documentProgress = (stats.documentsRequis || 0) > 0 
-    ? Math.round(((stats.documentsSoumis || 0) / (stats.documentsRequis || 1)) * 100) 
+  // Calculer les tendances
+  const personnelTrend = evolution.personnel.length >= 2
+    ? ((evolution.personnel[evolution.personnel.length - 1].effectifs - 
+        evolution.personnel[evolution.personnel.length - 2].effectifs) / 
+        (evolution.personnel[evolution.personnel.length - 2].effectifs || 1)) * 100
     : 0;
 
-  const kpiProgress = (stats.totalKpis || 0) > 0 
-    ? Math.round(((stats.kpiValides || 0) / (stats.totalKpis || 1)) * 100) 
+  const caTrend = evolution.financier.length >= 2
+    ? ((evolution.financier[evolution.financier.length - 1].ca - 
+        evolution.financier[evolution.financier.length - 2].ca) / 
+        (evolution.financier[evolution.financier.length - 2].ca || 1)) * 100
     : 0;
 
-  const metrics = [
-    {
-      title: 'Score Global',
-      value: `${stats.scoreGlobal || 0}/100`,
-      progress: stats.scoreGlobal || 0,
-      icon: <Speed sx={{ fontSize: 32 }} />,
-      color: 'primary',
-      subtitle: 'Performance globale'
-    },
-    {
-      title: 'KPI Validés',
-      value: `${stats.kpiValides}/${stats.totalKpis}`,
-      progress: kpiProgress,
-      icon: <Assessment sx={{ fontSize: 32 }} />,
-      color: 'success',
-      subtitle: 'Indicateurs approuvés'
-    },
-    {
-      title: 'Documents',
-      value: `${stats.documentsSoumis}/${stats.documentsRequis}`,
-      progress: documentProgress,
-      icon: <Description sx={{ fontSize: 32 }} />,
-      color: 'info',
-      subtitle: 'Documents soumis'
-    },
-    {
-      title: 'Visites',
-      value: `${stats.visitesTerminees}/${stats.visitesPlanifiees}`,
-      progress: (stats.visitesPlanifiees || 0) > 0 
-        ? Math.round(((stats.visitesTerminees || 0) / (stats.visitesPlanifiees || 1)) * 100) 
-        : 0,
-      icon: <CalendarToday sx={{ fontSize: 32 }} />,
-      color: 'warning',
-      subtitle: 'Visites effectuées'
-    }
-  ];
+  const getTresorerieColor = (tresorerie: string) => {
+    if (tresorerie === 'Aisée') return 'success';
+    if (tresorerie === 'Normale') return 'info';
+    if (tresorerie === 'Difficile') return 'error';
+    return 'default';
+  };
+
+  const getConformiteColor = (conformite: string) => {
+    if (conformite === 'Conforme') return 'success';
+    if (conformite === 'Non conforme') return 'error';
+    if (conformite === 'En cours de vérification') return 'warning';
+    return 'default';
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
-            <Box>
-              <Typography 
-                variant="h3" 
-                fontWeight="bold" 
-                gutterBottom
-                sx={{
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}
-              >
-                Tableau de Bord Entreprise
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Vue d'ensemble de vos indicateurs, documents et visites
-              </Typography>
-            </Box>
-          
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
+          <Box>
+            <Typography 
+              variant="h3" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              Tableau de Bord
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {entreprise.identification?.nomEntreprise || 'Entreprise'}
+            </Typography>
+          </Box>
+        
           <Stack direction="row" spacing={2} alignItems="center">
-          <ComplianceTrafficLight 
-              status={stats.statutConformite || 'yellow'} 
-            details={{
-                requiredDocuments: stats.documentsRequis || 0,
-                submittedDocuments: stats.documentsSoumis || 0,
-                validDocuments: stats.documentsSoumis || 0,
-              lastUpdated: new Date().toISOString()
-            }}
-          />
+            <Chip
+              label={typeof evolution.currentData.conformite === 'string' ? evolution.currentData.conformite : 'Non vérifié'}
+              color={getConformiteColor(typeof evolution.currentData.conformite === 'string' ? evolution.currentData.conformite : 'Non vérifié') as any}
+              icon={<CheckCircle />}
+              sx={{ fontWeight: 600, fontSize: '0.9rem', px: 1 }}
+            />
             
             <Tooltip title="Actualiser">
               <IconButton
@@ -350,185 +360,17 @@ const EnterpriseDashboard: React.FC = () => {
                 <Refresh color="primary" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Télécharger">
-              <IconButton
-                sx={{ 
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
-                }}
-              >
-                <Download color="primary" />
-              </IconButton>
-            </Tooltip>
           </Stack>
         </Stack>
       </Box>
 
-      {/* Métriques principales */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {metrics.map((metric, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <MetricCard {...metric} />
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Section Statut de Conformité */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%', borderRadius: 3 }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center" mb={3}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.success.main, 0.1)
-                  }}
-                >
-                  <CheckCircle sx={{ color: 'success.main', fontSize: 32 }} />
-                </Box>
-                <Box>
-                  <Typography variant="h6" fontWeight="bold">
-                    Statut de Conformité
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    État actuel de votre conformité
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Stack spacing={2}>
-                <Paper
-                  sx={{
-                    p: 2.5,
-                    borderRadius: 2,
-                    bgcolor: alpha(
-                      stats.statutConformite === 'green' 
-                        ? theme.palette.success.main 
-                        : stats.statutConformite === 'yellow' 
-                        ? theme.palette.warning.main 
-                        : theme.palette.error.main,
-                      0.1
-                    ),
-                    border: 1,
-                    borderColor: alpha(
-                      stats.statutConformite === 'green' 
-                        ? theme.palette.success.main 
-                        : stats.statutConformite === 'yellow' 
-                        ? theme.palette.warning.main 
-                        : theme.palette.error.main,
-                      0.3
-                    )
-                  }}
-                >
-                  <Typography variant="h4" fontWeight="bold" gutterBottom>
-                    {stats.statutConformite === 'green' 
-                      ? '✓ Conforme' 
-                      : stats.statutConformite === 'yellow' 
-                      ? '⚠ En cours' 
-                      : '✕ Non conforme'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Documents soumis: {stats.documentsSoumis}/{stats.documentsRequis}
-                  </Typography>
-                </Paper>
-
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Progression globale
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={documentProgress} 
-                    sx={{ 
-                      height: 10, 
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.grey[500], 0.1),
-                      '& .MuiLinearProgress-bar': {
-                        borderRadius: 3,
-                        background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`
-                      }
-                    }} 
-                  />
-                  <Typography variant="caption" color="text.secondary" mt={0.5}>
-                    {documentProgress}% complété
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%', borderRadius: 3 }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center" mb={3}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.primary.main, 0.1)
-                  }}
-                >
-                  <Timeline sx={{ color: 'primary.main', fontSize: 32 }} />
-                </Box>
-                <Box>
-                  <Typography variant="h6" fontWeight="bold">
-                    Activités Récentes
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Dernières actions sur votre compte
-                  </Typography>
-      </Box>
-              </Stack>
-
-              <Stack spacing={1.5}>
-                {[1, 2, 3].map((_, index) => (
-                  <Paper
-                    key={index}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      bgcolor: alpha(theme.palette.grey[500], 0.02),
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        borderColor: alpha(theme.palette.primary.main, 0.3)
-                      }
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                        <Description fontSize="small" />
-                      </Avatar>
-                      <Box flex={1}>
-                        <Typography variant="body2" fontWeight={600}>
-                          Document soumis
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Il y a {index + 1} jour{index > 0 ? 's' : ''}
-                        </Typography>
-      </Box>
-                      <Chip label="Validé" size="small" color="success" />
-                    </Stack>
-                  </Paper>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Calendrier des Visites */}
-      <Card sx={{ borderRadius: 3 }}>
+      {/* Calendrier des Visites - EN PREMIER */}
+      <Card sx={{ borderRadius: 3, mb: 4, boxShadow: theme.shadows[4] }}>
         <CardContent>
           <Stack direction="row" spacing={2} alignItems="center" mb={3}>
             <Box
               sx={{
-                p: 1,
+                p: 1.5,
                 borderRadius: 2,
                 bgcolor: alpha(theme.palette.warning.main, 0.1)
               }}
@@ -536,17 +378,347 @@ const EnterpriseDashboard: React.FC = () => {
               <CalendarToday sx={{ color: 'warning.main', fontSize: 32 }} />
             </Box>
             <Box>
-              <Typography variant="h6" fontWeight="bold">
+              <Typography variant="h5" fontWeight="bold">
                 Calendrier des Visites
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Planification et suivi de vos visites
+              <Typography variant="body2" color="text.secondary">
+                Visites planifiées par l'administrateur
               </Typography>
             </Box>
           </Stack>
           <VisitsCalendar />
         </CardContent>
       </Card>
+
+      {/* Indicateurs Clés */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard
+            title="Effectifs Actuels"
+            value={evolution.currentData.effectifs}
+            change={Math.round(personnelTrend)}
+            trend={personnelTrend > 0 ? 'up' : personnelTrend < 0 ? 'down' : 'neutral'}
+            icon={<People sx={{ fontSize: 32 }} />}
+            color="primary"
+            subtitle="Employés"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard
+            title="Chiffre d'Affaires"
+            value={`${(evolution.currentData.ca / 1000000).toFixed(1)}M`}
+            change={Math.round(caTrend)}
+            trend={caTrend > 0 ? 'up' : caTrend < 0 ? 'down' : 'neutral'}
+            icon={<AttachMoney sx={{ fontSize: 32 }} />}
+            color="success"
+            subtitle={evolution.financier[evolution.financier.length - 1]?.devise || 'FCFA'}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard
+            title="Trésorerie"
+            value={evolution.currentData.tresorerie}
+            icon={<AccountBalance sx={{ fontSize: 32 }} />}
+            color={
+              evolution.currentData.tresorerie === 'Aisée' ? 'success' :
+              evolution.currentData.tresorerie === 'Normale' ? 'info' : 'warning'
+            }
+            subtitle="Situation actuelle"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard
+            title="Conformité"
+            value={typeof evolution.currentData.conformite === 'string' ? evolution.currentData.conformite : 'Non vérifié'}
+            icon={<CheckCircle sx={{ fontSize: 32 }} />}
+            color={
+              (typeof evolution.currentData.conformite === 'string' ? evolution.currentData.conformite : 'Non vérifié') === 'Conforme' ? 'success' :
+              (typeof evolution.currentData.conformite === 'string' ? evolution.currentData.conformite : 'Non vérifié') === 'Non conforme' ? 'error' : 'warning'
+            }
+            subtitle="Statut administratif"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Évolutions Graphiques */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1)
+                  }}
+                >
+                  <People sx={{ color: 'primary.main', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Évolution du Personnel
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Historique des effectifs et créations d'emplois
+                  </Typography>
+                </Box>
+              </Stack>
+              <PersonnelEvolutionChart data={evolution.personnel} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.success.main, 0.1)
+                  }}
+                >
+                  <AttachMoney sx={{ color: 'success.main', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Évolution Financière
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    CA et coûts de production dans le temps
+                  </Typography>
+                </Box>
+              </Stack>
+              <BudgetEvolutionChart data={evolution.financier} />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Innovation & Financement */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.info.main, 0.1)
+                  }}
+                >
+                  <AccountBalance sx={{ color: 'info.main', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Sources de Financement
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Répartition de vos sources de financement
+                  </Typography>
+                </Box>
+              </Stack>
+              <FinancementPieChart data={entreprise.performanceEconomique?.sourcesFinancement || {}} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.warning.main, 0.1)
+                  }}
+                >
+                  <Lightbulb sx={{ color: 'warning.main', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Innovation & Digitalisation
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Niveaux d'intégration technologique
+                  </Typography>
+                </Box>
+              </Stack>
+              <InnovationRadarChart data={entreprise.innovationDigitalisation || {}} />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Performance des Conventions */}
+      <Card sx={{ borderRadius: 3, mb: 4 }}>
+        <CardContent>
+          <Stack direction="row" spacing={2} alignItems="center" mb={3}>
+            <Box
+              sx={{
+                p: 1,
+                borderRadius: 2,
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }}
+            >
+              <Assessment sx={{ color: 'primary.main', fontSize: 28 }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                Performance des Conventions
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Atteinte des objectifs contractuels
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Box>
+                <Stack direction="row" justifyContent="space-between" mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Cibles Investissement
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary.main">
+                    {entreprise.conventions?.atteinteCiblesInvestissement || 0}%
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={entreprise.conventions?.atteinteCiblesInvestissement || 0}
+                  sx={{
+                    height: 10,
+                    borderRadius: 5,
+                    bgcolor: alpha(theme.palette.grey[500], 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 5,
+                      bgcolor: theme.palette.primary.main
+                    }
+                  }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box>
+                <Stack direction="row" justifyContent="space-between" mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Cibles Emploi
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="success.main">
+                    {entreprise.conventions?.atteinteCiblesEmploi || 0}%
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={entreprise.conventions?.atteinteCiblesEmploi || 0}
+                  sx={{
+                    height: 10,
+                    borderRadius: 5,
+                    bgcolor: alpha(theme.palette.grey[500], 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 5,
+                      bgcolor: theme.palette.success.main
+                    }
+                  }}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box>
+                <Stack direction="row" justifyContent="space-between" mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Respect Délais Reporting
+                  </Typography>
+                  <Chip
+                    label={entreprise.conventions?.respectDelaisReporting?.conforme ? 'Conforme' : `${entreprise.conventions?.respectDelaisReporting?.joursRetard || 0}j retard`}
+                    size="small"
+                    color={entreprise.conventions?.respectDelaisReporting?.conforme ? 'success' : 'error'}
+                  />
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={entreprise.conventions?.respectDelaisReporting?.conforme ? 100 : 0}
+                  sx={{
+                    height: 10,
+                    borderRadius: 5,
+                    bgcolor: alpha(theme.palette.grey[500], 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 5,
+                      bgcolor: entreprise.conventions?.respectDelaisReporting?.conforme 
+                        ? theme.palette.success.main 
+                        : theme.palette.error.main
+                    }
+                  }}
+                />
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Historique des Révisions & Activités */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.1)
+                  }}
+                >
+                  <TimelineIcon sx={{ color: 'secondary.main', fontSize: 28 }} />
+                </Box>
+                <Box flex={1}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Historique des Révisions
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Snapshots enregistrés lors des visites
+                  </Typography>
+                </Box>
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+              <RevisionsTimeline snapshots={snapshots} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 3 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.info.main, 0.1)
+                  }}
+                >
+                  <TimelineIcon sx={{ color: 'info.main', fontSize: 28 }} />
+                </Box>
+                <Box flex={1}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Activités Récentes
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Dernières actions sur votre compte
+                  </Typography>
+                </Box>
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+              <ActivityFeed activities={activities} />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Container>
   );
 };

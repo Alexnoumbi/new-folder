@@ -259,6 +259,24 @@ const entrepriseSchema = new mongoose.Schema({
     enum: ['En attente', 'Actif', 'Inactif', 'Suspendu'],
     default: 'En attente'
   },
+  conformite: {
+    type: String,
+    enum: ['Conforme', 'Non conforme', 'En cours de vérification', 'Non vérifié'],
+    default: 'Non vérifié',
+    description: 'Statut de conformité défini manuellement par l\'administrateur'
+  },
+  commentaireConformite: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Le commentaire ne peut pas dépasser 500 caractères']
+  },
+  derniereVerificationConformite: {
+    type: Date
+  },
+  verifiePar: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   informationsCompletes: {
     type: Boolean,
     default: false

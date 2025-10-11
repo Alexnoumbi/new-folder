@@ -16,7 +16,7 @@ async function generatePDF(report, filePath, includeCharts) {
 
             // Ajouter le contenu au PDF
             doc.fontSize(25)
-               .text('Rapport', { align: 'center' })
+               .text(report.title || 'Rapport', { align: 'center' })
                .moveDown();
 
             // Informations de base
@@ -25,6 +25,82 @@ async function generatePDF(report, filePath, includeCharts) {
                .text(`Date de création: ${new Date(report.createdAt).toLocaleDateString()}`)
                .text(`Période: ${new Date(report.startDate).toLocaleDateString()} - ${new Date(report.endDate).toLocaleDateString()}`)
                .moveDown();
+
+            // Ajouter les statistiques générales
+            if (report.data) {
+                doc.fontSize(18).text('📊 Statistiques Générales', { underline: true }).moveDown(0.5);
+                doc.fontSize(12)
+                   .text(`Nombre d'entreprises: ${report.data.entreprises?.length || 0}`)
+                   .text(`Nombre d'indicateurs: ${report.data.indicators?.length || 0}`)
+                   .text(`Nombre de KPIs: ${report.data.kpis?.length || 0}`)
+                   .text(`Nombre de visites: ${report.data.visits?.length || 0}`)
+                   .moveDown();
+
+                // Détails des entreprises
+                if (report.data.entreprises && report.data.entreprises.length > 0) {
+                    doc.fontSize(18).text('🏢 Entreprises', { underline: true }).moveDown(0.5);
+                    report.data.entreprises.slice(0, 10).forEach((ent, index) => {
+                        doc.fontSize(14).text(`${index + 1}. ${ent.identification?.nomEntreprise || ent.nom || 'Non spécifié'}`, { bold: true });
+                        doc.fontSize(11)
+                           .text(`   Région: ${ent.identification?.region || 'N/A'}`)
+                           .text(`   Secteur: ${ent.identification?.secteurActivite || 'N/A'}`)
+                           .text(`   Statut: ${ent.statut || 'N/A'}`)
+                           .moveDown(0.3);
+                    });
+                    if (report.data.entreprises.length > 10) {
+                        doc.fontSize(11).text(`   ... et ${report.data.entreprises.length - 10} autres entreprises`).moveDown();
+                    }
+                }
+
+                // Détails des indicateurs
+                if (report.data.indicators && report.data.indicators.length > 0) {
+                    doc.fontSize(18).text('📈 Indicateurs', { underline: true }).moveDown(0.5);
+                    report.data.indicators.slice(0, 10).forEach((ind, index) => {
+                        doc.fontSize(14).text(`${index + 1}. ${ind.name || 'Indicateur'}`, { bold: true });
+                        doc.fontSize(11)
+                           .text(`   Type: ${ind.type || 'N/A'}`)
+                           .text(`   Valeur actuelle: ${ind.currentValue || 'N/A'}`)
+                           .text(`   Objectif: ${ind.target || 'N/A'}`)
+                           .moveDown(0.3);
+                    });
+                    if (report.data.indicators.length > 10) {
+                        doc.fontSize(11).text(`   ... et ${report.data.indicators.length - 10} autres indicateurs`).moveDown();
+                    }
+                }
+
+                // Détails des KPIs
+                if (report.data.kpis && report.data.kpis.length > 0) {
+                    doc.fontSize(18).text('🎯 KPIs', { underline: true }).moveDown(0.5);
+                    report.data.kpis.slice(0, 10).forEach((kpi, index) => {
+                        doc.fontSize(14).text(`${index + 1}. ${kpi.name || 'KPI'}`, { bold: true });
+                        doc.fontSize(11)
+                           .text(`   Catégorie: ${kpi.category || 'N/A'}`)
+                           .text(`   Valeur: ${kpi.value || 'N/A'}`)
+                           .text(`   Cible: ${kpi.target || 'N/A'}`)
+                           .moveDown(0.3);
+                    });
+                    if (report.data.kpis.length > 10) {
+                        doc.fontSize(11).text(`   ... et ${report.data.kpis.length - 10} autres KPIs`).moveDown();
+                    }
+                }
+
+                // Détails des visites
+                if (report.data.visits && report.data.visits.length > 0) {
+                    doc.fontSize(18).text('👁️ Visites', { underline: true }).moveDown(0.5);
+                    report.data.visits.slice(0, 5).forEach((visit, index) => {
+                        doc.fontSize(14).text(`${index + 1}. Visite du ${new Date(visit.scheduledAt).toLocaleDateString()}`, { bold: true });
+                        doc.fontSize(11)
+                           .text(`   Type: ${visit.type || 'N/A'}`)
+                           .text(`   Statut: ${visit.status || 'N/A'}`)
+                           .moveDown(0.3);
+                    });
+                    if (report.data.visits.length > 5) {
+                        doc.fontSize(11).text(`   ... et ${report.data.visits.length - 5} autres visites`).moveDown();
+                    }
+                }
+            } else {
+                doc.fontSize(14).text('Aucune donnée disponible pour cette période.').moveDown();
+            }
 
             if (report.visit) {
                 doc.fontSize(16).text('Informations de la visite', { underline: true }).moveDown(0.5);

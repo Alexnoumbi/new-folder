@@ -1,8 +1,18 @@
-import api from './api';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api/results-framework';
 
 export interface ResultsFramework {
   _id: string;
   project: string;
+  entreprise?: string | {
+    _id: string;
+    nom?: string;
+    name?: string;
+    identification?: {
+      nomEntreprise?: string;
+    };
+  };
   name: string;
   description?: string;
   frameworkType: 'LOGFRAME' | 'THEORY_OF_CHANGE' | 'RESULTS_CHAIN' | 'OUTCOME_MAPPING';
@@ -143,50 +153,56 @@ export interface FrameworkStats {
 }
 
 const resultsFrameworkService = {
+  // Obtenir tous les cadres
+  getAll: async (params?: { entrepriseId?: string; status?: string }): Promise<ResultsFramework[]> => {
+    const response = await axios.get(API_URL, { params });
+    return response.data.data || response.data || [];
+  },
+
   // Créer un cadre de résultats
   createFramework: async (data: Partial<ResultsFramework>): Promise<ResultsFramework> => {
-    const response = await api.post('/results-framework', data);
+    const response = await axios.post(API_URL, data);
     return response.data.data;
   },
 
   // Obtenir les cadres par projet
   getFrameworksByProject: async (projectId: string): Promise<ResultsFramework[]> => {
-    const response = await api.get(`/results-framework/project/${projectId}`);
+    const response = await axios.get(`${API_URL}/project/${projectId}`);
     return response.data.data;
   },
 
   // Obtenir un cadre spécifique
   getFrameworkById: async (id: string): Promise<ResultsFramework> => {
-    const response = await api.get(`/results-framework/${id}`);
+    const response = await axios.get(`${API_URL}/${id}`);
     return response.data.data;
   },
 
   // Mettre à jour un cadre
   updateFramework: async (id: string, data: Partial<ResultsFramework>): Promise<ResultsFramework> => {
-    const response = await api.put(`/results-framework/${id}`, data);
+    const response = await axios.put(`${API_URL}/${id}`, data);
     return response.data.data;
   },
 
   // Supprimer un cadre
   deleteFramework: async (id: string): Promise<void> => {
-    await api.delete(`/results-framework/${id}`);
+    await axios.delete(`${API_URL}/${id}`);
   },
 
   // Ajouter un outcome
   addOutcome: async (frameworkId: string, outcome: Outcome): Promise<ResultsFramework> => {
-    const response = await api.post(`/results-framework/${frameworkId}/outcomes`, outcome);
+    const response = await axios.post(`${API_URL}/${frameworkId}/outcomes`, outcome);
     return response.data.data;
   },
 
   // Ajouter un output
   addOutput: async (frameworkId: string, output: Output): Promise<ResultsFramework> => {
-    const response = await api.post(`/results-framework/${frameworkId}/outputs`, output);
+    const response = await axios.post(`${API_URL}/${frameworkId}/outputs`, output);
     return response.data.data;
   },
 
   // Ajouter une activité
   addActivity: async (frameworkId: string, activity: Activity): Promise<ResultsFramework> => {
-    const response = await api.post(`/results-framework/${frameworkId}/activities`, activity);
+    const response = await axios.post(`${API_URL}/${frameworkId}/activities`, activity);
     return response.data.data;
   },
 
@@ -197,8 +213,8 @@ const resultsFrameworkService = {
     status: Activity['status'],
     progressPercentage?: number
   ): Promise<ResultsFramework> => {
-    const response = await api.put(
-      `/results-framework/${frameworkId}/activities/${activityId}/status`,
+    const response = await axios.put(
+      `${API_URL}/${frameworkId}/activities/${activityId}/status`,
       { status, progressPercentage }
     );
     return response.data.data;
@@ -211,7 +227,7 @@ const resultsFrameworkService = {
     elementId: string,
     indicatorId: string
   ): Promise<ResultsFramework> => {
-    const response = await api.post('/results-framework/link-indicator', {
+    const response = await axios.post(`${API_URL}/link-indicator`, {
       frameworkId,
       elementType,
       elementId,
@@ -222,25 +238,25 @@ const resultsFrameworkService = {
 
   // Générer un rapport de cadre logique
   generateLogframeReport: async (id: string): Promise<any> => {
-    const response = await api.get(`/results-framework/${id}/report`);
+    const response = await axios.get(`${API_URL}/${id}/report`);
     return response.data.data;
   },
 
   // Mettre à jour la théorie du changement
   updateTheoryOfChange: async (id: string, theoryOfChange: TheoryOfChange): Promise<ResultsFramework> => {
-    const response = await api.put(`/results-framework/${id}/theory-of-change`, theoryOfChange);
+    const response = await axios.put(`${API_URL}/${id}/theory-of-change`, theoryOfChange);
     return response.data.data;
   },
 
   // Ajouter un risque
   addRisk: async (frameworkId: string, risk: Risk): Promise<ResultsFramework> => {
-    const response = await api.post(`/results-framework/${frameworkId}/risks`, risk);
+    const response = await axios.post(`${API_URL}/${frameworkId}/risks`, risk);
     return response.data.data;
   },
 
   // Obtenir les statistiques
   getFrameworkStats: async (id: string): Promise<FrameworkStats> => {
-    const response = await api.get(`/results-framework/${id}/stats`);
+    const response = await axios.get(`${API_URL}/${id}/stats`);
     return response.data.data;
   }
 };

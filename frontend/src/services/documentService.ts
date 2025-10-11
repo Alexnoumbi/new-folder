@@ -3,6 +3,7 @@ import api from './api';
 export interface Document {
   id?: string;
   _id?: string;
+  name?: string;
   type: string;
   required: boolean;
   dueDate: string;
@@ -10,6 +11,8 @@ export interface Document {
   files: Array<{ name: string; url: string; uploadedAt?: string }>;
   uploadedAt?: string;
   validatedBy?: string;
+  ocrText?: string;
+  ocrConfidence?: number;
 }
 
 export const getDocuments = async (): Promise<Document[]> => {
@@ -20,10 +23,28 @@ export const getDocuments = async (): Promise<Document[]> => {
 const documentService = {
   getDocuments,
 
-  uploadDocument: async (documentType: string, file: File) => {
+  uploadDocument: async (
+    documentType: string, 
+    file: File, 
+    name?: string,
+    ocrText?: string,
+    ocrConfidence?: number
+  ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', documentType);
+    
+    if (name) {
+      formData.append('name', name);
+    }
+    
+    if (ocrText) {
+      formData.append('ocrText', ocrText);
+    }
+    
+    if (ocrConfidence !== undefined) {
+      formData.append('ocrConfidence', ocrConfidence.toString());
+    }
 
     const response = await api.post(`/documents`, formData, {
       headers: {

@@ -48,6 +48,9 @@ export interface Entreprise {
     adresse?: any;
   };
   statut?: string;
+  conformite?: string;
+  commentaireConformite?: string;
+  derniereVerificationConformite?: Date;
   informationsCompletes?: boolean;
   dateCreation?: Date;
   dateModification?: Date;
@@ -129,6 +132,17 @@ export const getEntreprise = async (id: string): Promise<Entreprise> => {
   }
 };
 
+// Obtenir toutes les informations détaillées d'une entreprise (documents, reports, KPIs, messages, visits)
+export const getEntrepriseComplete = async (id: string): Promise<any> => {
+  try {
+    const response = await api.get(`/entreprises/${id}/complete`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching complete enterprise data:', error);
+    throw error;
+  }
+};
+
 // Obtenir les entreprises agréées uniquement
 export const getEntreprisesAgrees = async (): Promise<Entreprise[]> => {
   try {
@@ -193,6 +207,59 @@ export const updateEntrepriseStatut = async (id: string, statut: string): Promis
     return response.data.data || response.data.entreprise;
   } catch (error) {
     console.error('Error updating entreprise statut:', error);
+    throw error;
+  }
+};
+
+// Mettre à jour la conformité d'une entreprise
+export const updateEntrepriseConformite = async (
+  id: string, 
+  conformite: string, 
+  commentaireConformite?: string
+): Promise<Entreprise> => {
+  try {
+    const response = await api.patch(`/entreprises/${id}/conformite`, { 
+      conformite, 
+      commentaireConformite 
+    });
+    return response.data.data || response.data.entreprise;
+  } catch (error) {
+    console.error('Error updating entreprise conformite:', error);
+    throw error;
+  }
+};
+
+// Obtenir l'évolution temporelle d'une entreprise
+export const getEntrepriseEvolutionData = async (id: string): Promise<any> => {
+  try {
+    const response = await api.get(`/entreprises/${id}/evolution`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching evolution data:', error);
+    throw error;
+  }
+};
+
+// Obtenir les snapshots historiques d'une entreprise
+export const getEntrepriseSnapshots = async (id: string): Promise<any[]> => {
+  try {
+    const response = await api.get(`/entreprises/${id}/snapshots`);
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Error fetching snapshots:', error);
+    throw error;
+  }
+};
+
+// Obtenir le journal d'activité d'une entreprise
+export const getEntrepriseActivityLog = async (id: string, limit: number = 50): Promise<any[]> => {
+  try {
+    const response = await api.get(`/entreprises/${id}/activity-log`, {
+      params: { limit }
+    });
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Error fetching activity log:', error);
     throw error;
   }
 };
@@ -337,5 +404,10 @@ export default {
   getEntrepriseMessages,
   getEntrepriseReports,
   getEntrepriseStats,
+  getEntrepriseComplete,
+  getEntrepriseEvolutionData,
+  getEntrepriseSnapshots,
+  getEntrepriseActivityLog,
+  updateEntrepriseConformite,
   getControls
 };

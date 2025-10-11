@@ -37,7 +37,6 @@ import {
   Brightness7,
   Search,
   Business,
-  TrendingUp,
   CheckCircle,
   Upload,
   People
@@ -135,13 +134,8 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Tableau de bord', icon: <Dashboard />, path: '/enterprise/dashboard' },
-    { text: 'Aperçu', icon: <TrendingUp />, path: '/enterprise/overview' },
-    { text: 'Historique KPI', icon: <Assessment />, path: '/enterprise/kpi-history', badge: 3 },
     { text: 'Documents', icon: <Description />, path: '/enterprise/documents', badge: 2 },
-    { text: 'Affiliations', icon: <People />, path: '/enterprise/affiliations' },
     { text: 'Messages', icon: <Upload />, path: '/enterprise/messages' },
-    { text: 'Rapports', icon: <CheckCircle />, path: '/enterprise/reports' },
-    { text: 'Scanner OCR', icon: <Upload />, path: '/enterprise/ocr' },
     { text: 'Profil', icon: <Business />, path: '/enterprise/profile' }
   ];
 

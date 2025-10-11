@@ -19,7 +19,7 @@ const {
 } = require('../controllers/portfolioController');
 
 // Stats globales (avant les routes avec :id)
-router.get('/stats', getGlobalPortfolioStats);
+router.get('/stats/global', getGlobalPortfolioStats);
 
 // Routes de base
 router.post('/', createPortfolio);

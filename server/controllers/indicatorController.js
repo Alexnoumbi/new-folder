@@ -1,217 +1,497 @@
 const Indicator = require('../models/Indicator');
-const Convention = require('../models/Convention');
+const KPI = require('../models/KPI');
 
+// Obtenir tous les indicateurs
+exports.getAllIndicators = async (req, res) => {
+  try {
+    console.log('Fetching all indicators...');
+    const { entrepriseId, frameworkId, type, status } = req.query;
+    
+    const filter = { isActive: true };
+    if (entrepriseId) filter.entreprise = entrepriseId;
+    if (frameworkId) filter.framework = frameworkId;
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+
+    console.log('Filter:', filter);
+
+    // D'abord essayer sans populate pour voir si le modèle fonctionne
+    let indicators;
+    try {
+      indicators = await Indicator.find(filter).sort({ createdAt: -1 });
+      console.log(`Found ${indicators.length} indicators (without populate)`);
+      
+      // Ensuite populate progressivement
+      indicators = await Indicator.find(filter)
+        .populate('entreprise', 'identification.nomEntreprise nom name')
+        .sort({ createdAt: -1 });
+      console.log('Entreprise populated successfully');
+      
+      indicators = await Indicator.find(filter)
+        .populate('entreprise', 'identification.nomEntreprise nom name')
+        .populate('framework', 'name description')
+        .sort({ createdAt: -1 });
+      console.log('Framework populated successfully');
+      
+      indicators = await Indicator.find(filter)
+        .populate('entreprise', 'identification.nomEntreprise nom name')
+        .populate('framework', 'name description')
+        .populate('linkedKPIs', 'name nom code')
+        .sort({ createdAt: -1 });
+      console.log('LinkedKPIs populated successfully');
+      
+    } catch (populateError) {
+      console.error('Populate error:', populateError.message);
+      // Si le populate échoue, retourner sans populate
+      indicators = await Indicator.find(filter).sort({ createdAt: -1 });
+    }
+
+    console.log(`Returning ${indicators.length} indicators`);
+
+    res.json({
+      success: true,
+      data: indicators
+    });
+  } catch (error) {
+    console.error('Error fetching indicators:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des indicateurs',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+// Obtenir un indicateur par ID
+exports.getIndicatorById = async (req, res) => {
+  try {
+    const indicator = await Indicator.findById(req.params.id)
+      .populate('entreprise', 'identification.nomEntreprise nom name')
+      .populate('framework', 'name description type')
+      .populate('linkedKPIs', 'nom code valeurCible valeurActuelle unite')
+      .populate('createdBy', 'nom prenom email')
+      .populate('history.recordedBy', 'nom prenom');
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: indicator
+    });
+  } catch (error) {
+    console.error('Error fetching indicator:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de l\'indicateur',
+      error: error.message
+    });
+  }
+};
+
+// Créer un indicateur
 exports.createIndicator = async (req, res) => {
   try {
-    const {
-      conventionId,
-      name,
-      description,
-      type,
-      unit,
-      frequency,
-      targetValue,
-      minValue,
-      maxValue
-    } = req.body;
+    console.log('Creating indicator with data:', JSON.stringify(req.body, null, 2));
 
-    // Verify convention exists
-    const convention = await Convention.findById(conventionId);
-    if (!convention) {
-      return res.status(404).json({ message: 'Convention not found' });
-    }
-
-    const indicator = new Indicator({
-      conventionId,
-      name,
-      description,
-      type,
-      unit,
-      frequency,
-      targetValue,
-      minValue,
-      maxValue,
-      metadata: {
-        createdBy: req.user._id,
-        lastModifiedBy: req.user._id
-      }
-    });
-
-    await indicator.save();
-
-    // Add indicator reference to convention
-    convention.indicators.push(indicator._id);
-    await convention.save();
-
-    res.status(201).json(indicator);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getIndicatorsByConvention = async (req, res) => {
-  try {
-    const { conventionId } = req.params;
-    const indicators = await Indicator.find({ conventionId })
-      .populate('metadata.createdBy', 'name email')
-      .populate('metadata.lastModifiedBy', 'name email')
-      .sort('name');
-    res.json(indicators);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getIndicatorDetails = async (req, res) => {
-  try {
-    const indicator = await Indicator.findById(req.params.id)
-      .populate('history.submittedBy', 'name email')
-      .populate('metadata.createdBy', 'name email')
-      .populate('metadata.lastModifiedBy', 'name email');
-
-    if (!indicator) {
-      return res.status(404).json({ message: 'Indicator not found' });
-    }
-
-    res.json(indicator);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.updateIndicator = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updateData = req.body;
-
-    const indicator = await Indicator.findById(id);
-    if (!indicator) {
-      return res.status(404).json({ message: 'Indicator not found' });
-    }
-
-    Object.assign(indicator, updateData, {
-      'metadata.lastModifiedBy': req.user._id,
-      'metadata.updatedAt': new Date()
-    });
-
-    await indicator.save();
-    res.json(indicator);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.submitIndicatorValue = async (req, res) => {
-  try {
-    const { value, comment, attachments } = req.body;
-    const indicator = await Indicator.findById(req.params.id)
-      .populate('conventionId', 'enterpriseId');
-
-    if (!indicator) {
-      return res.status(404).json({ message: 'Indicator not found' });
-    }
-
-    indicator.addHistoryEntry(value, req.user._id, attachments, comment);
-    await indicator.save();
-
-    // Get Socket.io instance
-    const io = req.app.get('io');
-
-    // Emit to enterprise room
-    io.to(`enterprise_${indicator.conventionId.enterpriseId}`).emit('indicator:updated', {
-      type: 'VALUE_SUBMITTED',
-      indicatorId: indicator._id,
-      value,
-      submittedBy: req.user._id
-    });
-
-    // Emit to inspectors
-    io.to(`role_INSPECTOR`).emit('indicator:pending-validation', {
-      type: 'NEW_SUBMISSION',
-      indicatorId: indicator._id,
-      enterpriseId: indicator.conventionId.enterpriseId
-    });
-
-    res.json(indicator);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.validateIndicatorSubmission = async (req, res) => {
-  try {
-    const { id, submissionId } = req.params;
-    const { status, comment } = req.body;
-
-    const indicator = await Indicator.findById(id)
-      .populate('conventionId', 'enterpriseId');
-
-    if (!indicator) {
-      return res.status(404).json({ message: 'Indicator not found' });
-    }
-
-    const submission = indicator.history.id(submissionId);
-    if (!submission) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-
-    submission.status = status;
-    if (comment) submission.comment = comment;
-    await indicator.save();
-
-    // Get Socket.io instance
-    const io = req.app.get('io');
-
-    // Emit validation result to enterprise
-    io.to(`enterprise_${indicator.conventionId.enterpriseId}`).emit('indicator:validated', {
-      type: 'SUBMISSION_VALIDATED',
-      indicatorId: indicator._id,
-      submissionId,
-      status,
-      validatedBy: req.user._id
-    });
-
-    res.json(indicator);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getIndicatorHistory = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const indicator = await Indicator.findById(id)
-      .select('history')
-      .populate('history.submittedBy', 'name email');
-
-    if (!indicator) {
-      return res.status(404).json({ message: 'Indicator not found' });
-    }
-
-    res.json(indicator.history);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getIndicatorsReport = async (req, res) => {
-  try {
-    const { conventionId } = req.params;
-    const indicators = await Indicator.find({ conventionId })
-      .select('name type currentValue targetValue status nextReportingDate')
-      .sort('name');
-
-    const summary = {
-      total: indicators.length,
-      onTrack: indicators.filter(i => i.status === 'ON_TRACK').length,
-      atRisk: indicators.filter(i => i.status === 'AT_RISK').length,
-      offTrack: indicators.filter(i => i.status === 'OFF_TRACK').length,
-      notStarted: indicators.filter(i => i.status === 'NOT_STARTED').length,
-      indicators
+    const indicatorData = {
+      ...req.body,
+      createdBy: req.user?._id || '000000000000000000000000'
     };
 
-    res.json(summary);
+    // Nettoyer les champs vides
+    if (!indicatorData.framework || indicatorData.framework === '') {
+      delete indicatorData.framework;
+    }
+    
+    if (indicatorData.linkedKPIs && Array.isArray(indicatorData.linkedKPIs) && indicatorData.linkedKPIs.length === 0) {
+      delete indicatorData.linkedKPIs;
+    }
+
+    // Nettoyer les tableaux optionnels vides
+    if (indicatorData.verificationMeans && indicatorData.verificationMeans.length === 0) {
+      delete indicatorData.verificationMeans;
+    }
+    if (indicatorData.assumptions && indicatorData.assumptions.length === 0) {
+      delete indicatorData.assumptions;
+    }
+
+    // Nettoyer les champs optionnels vides
+    if (!indicatorData.dataSource || indicatorData.dataSource === '') {
+      delete indicatorData.dataSource;
+    }
+    if (!indicatorData.responsible || indicatorData.responsible === '') {
+      delete indicatorData.responsible;
+    }
+    if (!indicatorData.description || indicatorData.description === '') {
+      delete indicatorData.description;
+    }
+
+    console.log('Cleaned indicator data:', JSON.stringify(indicatorData, null, 2));
+
+    const indicator = new Indicator(indicatorData);
+    await indicator.save();
+
+    console.log('Indicator saved successfully:', indicator._id);
+
+    // Si lié à des KPIs, mettre à jour les KPIs
+    if (req.body.linkedKPIs && req.body.linkedKPIs.length > 0) {
+      try {
+        await KPI.updateMany(
+          { _id: { $in: req.body.linkedKPIs } },
+          { $addToSet: { linkedIndicators: indicator._id } }
+        );
+        console.log('KPIs updated with indicator link');
+      } catch (kpiError) {
+        console.error('Error updating KPIs (non-critical):', kpiError.message);
+        // Continue même si la mise à jour des KPIs échoue
+      }
+    }
+
+    const populatedIndicator = await Indicator.findById(indicator._id)
+      .populate('entreprise', 'identification.nomEntreprise nom name')
+      .populate('framework', 'name description')
+      .populate('linkedKPIs', 'name nom code');
+
+    res.status(201).json({
+      success: true,
+      data: populatedIndicator,
+      message: 'Indicateur créé avec succès'
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error creating indicator:', error);
+    console.error('Error details:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création de l\'indicateur',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+// Mettre à jour un indicateur
+exports.updateIndicator = async (req, res) => {
+  try {
+    const indicator = await Indicator.findById(req.params.id);
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    // Sauvegarder les anciens KPIs liés
+    const oldLinkedKPIs = indicator.linkedKPIs.map(id => id.toString());
+
+    // Mettre à jour l'indicateur
+    Object.assign(indicator, req.body);
+    indicator.updatedBy = req.user?._id || '000000000000000000000000';
+    
+    await indicator.save();
+
+    // Gérer les changements de KPIs liés
+    if (req.body.linkedKPIs) {
+      const newLinkedKPIs = req.body.linkedKPIs.map(id => id.toString());
+      
+      // Retirer l'indicateur des KPIs qui ne sont plus liés
+      const kpisToRemove = oldLinkedKPIs.filter(id => !newLinkedKPIs.includes(id));
+      if (kpisToRemove.length > 0) {
+        await KPI.updateMany(
+          { _id: { $in: kpisToRemove } },
+          { $pull: { linkedIndicators: indicator._id } }
+        );
+      }
+
+      // Ajouter l'indicateur aux nouveaux KPIs
+      const kpisToAdd = newLinkedKPIs.filter(id => !oldLinkedKPIs.includes(id));
+      if (kpisToAdd.length > 0) {
+        await KPI.updateMany(
+          { _id: { $in: kpisToAdd } },
+          { $addToSet: { linkedIndicators: indicator._id } }
+        );
+      }
+    }
+
+    const updatedIndicator = await Indicator.findById(indicator._id)
+      .populate('entreprise', 'identification.nomEntreprise nom')
+      .populate('framework', 'name')
+      .populate('linkedKPIs', 'nom code');
+
+    res.json({
+      success: true,
+      data: updatedIndicator,
+      message: 'Indicateur mis à jour avec succès'
+    });
+  } catch (error) {
+    console.error('Error updating indicator:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de l\'indicateur',
+      error: error.message
+    });
+  }
+};
+
+// Supprimer un indicateur (soft delete)
+exports.deleteIndicator = async (req, res) => {
+  try {
+    const indicator = await Indicator.findById(req.params.id);
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    // Soft delete
+    indicator.isActive = false;
+    indicator.updatedBy = req.user?._id || '000000000000000000000000';
+    await indicator.save();
+
+    // Retirer des KPIs liés
+    if (indicator.linkedKPIs && indicator.linkedKPIs.length > 0) {
+      await KPI.updateMany(
+        { _id: { $in: indicator.linkedKPIs } },
+        { $pull: { linkedIndicators: indicator._id } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Indicateur supprimé avec succès'
+    });
+  } catch (error) {
+    console.error('Error deleting indicator:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression de l\'indicateur',
+      error: error.message
+    });
+  }
+};
+
+// Ajouter une valeur à l'historique
+exports.addIndicatorValue = async (req, res) => {
+  try {
+    const { value, comment } = req.body;
+    const indicator = await Indicator.findById(req.params.id);
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    // Ajouter à l'historique
+    indicator.history.push({
+      date: new Date(),
+      value: parseFloat(value),
+      comment: comment || '',
+      recordedBy: req.user?._id || '000000000000000000000000'
+    });
+
+    // Mettre à jour la valeur actuelle
+    indicator.current = parseFloat(value);
+    indicator.updatedBy = req.user?._id || '000000000000000000000000';
+
+    await indicator.save();
+
+    const updatedIndicator = await Indicator.findById(indicator._id)
+      .populate('entreprise', 'identification.nomEntreprise nom')
+      .populate('framework', 'name')
+      .populate('history.recordedBy', 'nom prenom');
+
+    res.json({
+      success: true,
+      data: updatedIndicator,
+      message: 'Valeur ajoutée avec succès'
+    });
+  } catch (error) {
+    console.error('Error adding indicator value:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'ajout de la valeur',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir les indicateurs d'un cadre de résultats
+exports.getIndicatorsByFramework = async (req, res) => {
+  try {
+    const indicators = await Indicator.find({
+      framework: req.params.frameworkId,
+      isActive: true
+    })
+      .populate('entreprise', 'identification.nomEntreprise nom')
+      .populate('linkedKPIs', 'nom code valeurCible valeurActuelle')
+      .sort({ type: 1, name: 1 });
+
+    res.json({
+      success: true,
+      data: indicators
+    });
+  } catch (error) {
+    console.error('Error fetching framework indicators:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des indicateurs du cadre',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir les indicateurs liés à un KPI
+exports.getIndicatorsLinkedToKPI = async (req, res) => {
+  try {
+    const indicators = await Indicator.find({
+      linkedKPIs: req.params.kpiId,
+      isActive: true
+    })
+      .populate('entreprise', 'identification.nomEntreprise nom')
+      .populate('framework', 'name description')
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: indicators
+    });
+  } catch (error) {
+    console.error('Error fetching KPI indicators:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des indicateurs du KPI',
+      error: error.message
+    });
+  }
+};
+
+// Lier un indicateur à un KPI
+exports.linkToKPI = async (req, res) => {
+  try {
+    const { kpiId } = req.body;
+    const indicator = await Indicator.findById(req.params.id);
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    // Ajouter le KPI à la liste des KPIs liés
+    if (!indicator.linkedKPIs.includes(kpiId)) {
+      indicator.linkedKPIs.push(kpiId);
+      await indicator.save();
+
+      // Mettre à jour le KPI
+      await KPI.findByIdAndUpdate(kpiId, {
+        $addToSet: { linkedIndicators: indicator._id }
+      });
+    }
+
+    const updatedIndicator = await Indicator.findById(indicator._id)
+      .populate('linkedKPIs', 'nom code');
+
+    res.json({
+      success: true,
+      data: updatedIndicator,
+      message: 'Indicateur lié au KPI avec succès'
+    });
+  } catch (error) {
+    console.error('Error linking indicator to KPI:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la liaison avec le KPI',
+      error: error.message
+    });
+  }
+};
+
+// Délier un indicateur d'un KPI
+exports.unlinkFromKPI = async (req, res) => {
+  try {
+    const { kpiId } = req.body;
+    const indicator = await Indicator.findById(req.params.id);
+
+    if (!indicator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indicateur non trouvé'
+      });
+    }
+
+    // Retirer le KPI de la liste
+    indicator.linkedKPIs = indicator.linkedKPIs.filter(id => id.toString() !== kpiId);
+    await indicator.save();
+
+    // Mettre à jour le KPI
+    await KPI.findByIdAndUpdate(kpiId, {
+      $pull: { linkedIndicators: indicator._id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Indicateur délié du KPI avec succès'
+    });
+  } catch (error) {
+    console.error('Error unlinking indicator from KPI:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression du lien avec le KPI',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir les statistiques des indicateurs
+exports.getIndicatorStats = async (req, res) => {
+  try {
+    const { entrepriseId } = req.query;
+    const filter = { isActive: true };
+    if (entrepriseId) filter.entreprise = entrepriseId;
+
+    const indicators = await Indicator.find(filter);
+
+    const stats = {
+      total: indicators.length,
+      byType: {
+        OUTCOME: indicators.filter(i => i.type === 'OUTCOME').length,
+        OUTPUT: indicators.filter(i => i.type === 'OUTPUT').length,
+        ACTIVITY: indicators.filter(i => i.type === 'ACTIVITY').length,
+        IMPACT: indicators.filter(i => i.type === 'IMPACT').length
+      },
+      byStatus: {
+        ON_TRACK: indicators.filter(i => i.status === 'ON_TRACK').length,
+        AT_RISK: indicators.filter(i => i.status === 'AT_RISK').length,
+        OFF_TRACK: indicators.filter(i => i.status === 'OFF_TRACK').length,
+        NOT_STARTED: indicators.filter(i => i.status === 'NOT_STARTED').length
+      },
+      averageProgress: indicators.length > 0
+        ? indicators.reduce((sum, i) => sum + i.calculateProgress(), 0) / indicators.length
+        : 0
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching indicator stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques',
+      error: error.message
+    });
   }
 };

@@ -15,8 +15,10 @@ exports.uploadDocument = async (req, res) => {
             return res.status(400).json({ message: "Entreprise introuvable pour l'utilisateur" });
         }
 
-        const doc = await Document.create({
+        // Préparer les données du document
+        const documentData = {
             enterpriseId,
+            name: req.body.name || req.file.originalname,
             type: req.body.type || 'OTHER',
             required: true,
             dueDate: new Date(Date.now() + 30*24*60*60*1000),
@@ -27,7 +29,17 @@ exports.uploadDocument = async (req, res) => {
                 uploadedAt: new Date()
             }],
             uploadedAt: new Date()
-        });
+        };
+
+        // Ajouter les données OCR si présentes
+        if (req.body.ocrText) {
+            documentData.ocrText = req.body.ocrText;
+        }
+        if (req.body.ocrConfidence) {
+            documentData.ocrConfidence = parseFloat(req.body.ocrConfidence);
+        }
+
+        const doc = await Document.create(documentData);
 
         return res.status(201).json(doc);
     } catch (error) {

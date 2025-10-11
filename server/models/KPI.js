@@ -63,6 +63,16 @@ const kpiSchema = new mongoose.Schema({
     },
     currentValue: Number,
     history: [kpiHistorySchema],
+    // Liaison avec les indicateurs de cadres logiques
+    linkedIndicators: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Indicator'
+    }],
+    code: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
