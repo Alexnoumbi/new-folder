@@ -166,85 +166,66 @@ const updateEntreprise = async (req, res) => {
       });
     }
 
-    // Build nested update object only with provided fields
     const body = req.body || {};
     const updateData = {};
 
-    // Identification
+    // Fonction helper pour gérer les nested updates
+    const processNestedObject = (obj, prefix = '') => {
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        
+        if (value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+          // Récursion pour les objets imbriqués
+          processNestedObject(value, fullKey);
+        } else {
+          // Valeur finale
+          updateData[fullKey] = value;
+        }
+      });
+    };
+
+    // Traiter tous les champs principaux
+    const mainFields = [
+      'identification',
+      'performanceEconomique', 
+      'investissementEmploi',
+      'innovationDigitalisation',
+      'conventions',
+      'contact',
+      'description',
+      'statut',
+      'informationsCompletes',
+      'dateCreation'
+    ];
+
+    mainFields.forEach(field => {
+      if (body[field] !== undefined) {
+        if (typeof body[field] === 'object' && !Array.isArray(body[field]) && body[field] !== null) {
+          processNestedObject(body[field], field);
+        } else {
+          updateData[field] = body[field];
+        }
+      }
+    });
+
+    // Traiter les champs plats d'identification qui pourraient être envoyés directement
     const identificationFields = ['nomEntreprise','raisonSociale','region','ville','dateCreation','secteurActivite','sousSecteur','filiereProduction','formeJuridique','numeroContribuable'];
     identificationFields.forEach(field => {
-      if (body[field] !== undefined) {
+      if (body[field] !== undefined && !body.identification) {
         updateData[`identification.${field}`] = body[field];
       }
     });
 
-    // Performance Economique
-    if (body.performanceEconomique) {
-      // nested structure allowed
-      Object.keys(body.performanceEconomique).forEach(key => {
-        const val = body.performanceEconomique[key];
-        updateData[`performanceEconomique.${key}`] = val;
-      });
-    } else {
-      // allow flat CA fields
-      if (body['chiffreAffaires.montant'] !== undefined) updateData['performanceEconomique.chiffreAffaires.montant'] = body['chiffreAffaires.montant'];
-    }
+    // Traiter les champs de contact plats
+    const contactFields = ['telephone','email','siteWeb'];
+    contactFields.forEach(field => {
+      if (body[field] !== undefined && !body.contact) {
+        updateData[`contact.${field}`] = body[field];
+      }
+    });
 
-    // Investissement et Emploi
-    if (body.investissementEmploi) {
-      Object.keys(body.investissementEmploi).forEach(key => {
-        updateData[`investissementEmploi.${key}`] = body.investissementEmploi[key];
-      });
-    } else {
-      const invFields = ['effectifsEmployes','nouveauxEmploisCrees','nouveauxInvestissementsRealises','typesInvestissements'];
-      invFields.forEach(field => {
-        if (body[field] !== undefined) updateData[`investissementEmploi.${field}`] = body[field];
-      });
-    }
-
-    // Innovation et Digitalisation
-    if (body.innovationDigitalisation) {
-      Object.keys(body.innovationDigitalisation).forEach(key => {
-        updateData[`innovationDigitalisation.${key}`] = body.innovationDigitalisation[key];
-      });
-    }
-
-    // Conventions
-    if (body.conventions) {
-      Object.keys(body.conventions).forEach(key => {
-        // support nested objects like respectDelaisReporting.conforme
-        if (typeof body.conventions[key] === 'object' && !Array.isArray(body.conventions[key])) {
-          Object.keys(body.conventions[key]).forEach(k2 => {
-            updateData[`conventions.${key}.${k2}`] = body.conventions[key][k2];
-          });
-        } else {
-          updateData[`conventions.${key}`] = body.conventions[key];
-        }
-      });
-    }
-
-    // Contact
-    if (body.contact) {
-      Object.keys(body.contact).forEach(key => {
-        if (typeof body.contact[key] === 'object' && !Array.isArray(body.contact[key])) {
-          Object.keys(body.contact[key]).forEach(k2 => {
-            updateData[`contact.${key}.${k2}`] = body.contact[key][k2];
-          });
-        } else {
-          updateData[`contact.${key}`] = body.contact[key];
-        }
-      });
-    } else {
-      const contactFields = ['telephone','email','siteWeb'];
-      contactFields.forEach(field => {
-        if (body[field] !== undefined) updateData[`contact.${field}`] = body[field];
-      });
-    }
-
-    // Description
-    if (body.description !== undefined) updateData.description = body.description;
-
-    // Documents (replace whole documents array if provided)
+    // Documents (remplacer tout le tableau si fourni)
     if (body.documents !== undefined) {
       updateData.documents = Array.isArray(body.documents)
         ? body.documents.map(d => ({
@@ -260,14 +241,16 @@ const updateEntreprise = async (req, res) => {
         : body.documents;
     }
 
-    // Update modification date
+    // Mettre à jour la date de modification
     updateData.dateModification = new Date();
 
-    // Apply update
+    console.log('Update data being sent to DB:', JSON.stringify(updateData, null, 2));
+
+    // Appliquer la mise à jour
     const entreprise = await Entreprise.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!entreprise) {
@@ -277,11 +260,15 @@ const updateEntreprise = async (req, res) => {
       });
     }
 
+    console.log('Entreprise updated successfully:', entreprise._id);
+
     res.json({
       success: true,
+      data: entreprise,
       entreprise
     });
   } catch (error) {
+    console.error('Error updating entreprise:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de l\'entreprise',
@@ -817,18 +804,28 @@ const getEntrepriseComplete = async (req, res) => {
     }
 
     // Get all related data in parallel
+    // Note: Different models use different field names (enterprise, entrepriseId, enterpriseId)
     const [documents, reports, kpis, messages, visits, controls] = await Promise.all([
-      Document.find({ entreprise: id }).sort({ createdAt: -1 }).limit(50),
-      Report.find({ entreprise: id }).sort({ createdAt: -1 }).limit(50),
-      KPI.find({ entreprise: id }).sort({ date: -1 }).limit(50),
+      Document.find({ enterpriseId: id }).sort({ createdAt: -1 }).limit(50),
+      Report.find({}).sort({ createdAt: -1 }).limit(50), // Report model doesn't have enterprise field
+      KPI.find({ enterprise: id }).sort({ createdAt: -1 }).limit(50), // KPI uses 'enterprise'
       Message.find({ entrepriseId: id })
         .populate('sender', 'nom prenom email role')
         .populate('recipient', 'nom prenom email role')
         .sort({ createdAt: -1 })
         .limit(100),
       Visit.find({ enterpriseId: id }).sort({ scheduledAt: -1 }).limit(50),
-      Control.find({ entrepriseId: id }).sort({ date: -1 }).limit(50)
+      Control.find({ entrepriseId: id }).sort({ createdAt: -1 }).limit(50)
     ]);
+    
+    console.log('Found data for enterprise', id, ':', {
+      documents: documents.length,
+      reports: reports.length,
+      kpis: kpis.length,
+      messages: messages.length,
+      visits: visits.length,
+      controls: controls.length
+    });
 
     // Calculate statistics
     const stats = {

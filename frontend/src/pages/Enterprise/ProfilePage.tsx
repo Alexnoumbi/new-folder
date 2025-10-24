@@ -101,22 +101,57 @@ const ProfilePage: React.FC = () => {
     }, [fetchData]);
 
     const handleSave = async () => {
-        if (!entreprise?._id) return;
+        if (!entreprise?._id) {
+            setError('Aucune entreprise à mettre à jour');
+            return;
+        }
         
         try {
             setSaving(true);
             setError(null);
             setSuccess(null);
 
-            const updatedEnt = await updateEntreprise(entreprise._id, entreprise);
+            console.log('Saving entreprise data:', entreprise);
+
+            // Préparer les données à envoyer
+            const dataToSend = {
+                identification: entreprise.identification,
+                performanceEconomique: entreprise.performanceEconomique,
+                investissementEmploi: entreprise.investissementEmploi,
+                innovationDigitalisation: entreprise.innovationDigitalisation,
+                conventions: entreprise.conventions,
+                contact: entreprise.contact,
+                description: entreprise.description,
+                statut: entreprise.statut,
+                informationsCompletes: entreprise.informationsCompletes
+            };
+
+            console.log('Data being sent to API:', dataToSend);
+
+            const updatedEnt = await updateEntreprise(entreprise._id, dataToSend);
+            
+            console.log('Updated entreprise received:', updatedEnt);
+            
             setEntreprise(updatedEnt);
             setEditing(false);
-            setSuccess('Informations mises à jour avec succès !');
+            setSuccess('✅ Informations mises à jour avec succès !');
             
             setTimeout(() => setSuccess(null), 5000);
         } catch (err: any) {
-            console.error('Error saving:', err);
-            setError(err.response?.data?.message || 'Erreur lors de la sauvegarde');
+            console.error('Error saving entreprise:', err);
+            console.error('Error response:', err.response);
+            
+            const errorMsg = err.response?.data?.message 
+                || err.response?.data?.error
+                || err.message 
+                || 'Erreur lors de la sauvegarde des informations';
+            
+            setError(errorMsg);
+            
+            // Afficher les détails des erreurs de validation s'il y en a
+            if (err.response?.data?.errors) {
+                console.error('Validation errors:', err.response.data.errors);
+            }
         } finally {
             setSaving(false);
         }
@@ -131,17 +166,24 @@ const ProfilePage: React.FC = () => {
 
     const updateField = (path: string, value: any) => {
         setEntreprise((prev: any) => {
+            if (!prev) return prev;
+            
             const keys = path.split('.');
-            const newData = { ...prev };
+            const newData = JSON.parse(JSON.stringify(prev)); // Deep clone
             let current: any = newData;
             
             for (let i = 0; i < keys.length - 1; i++) {
-                if (!current[keys[i]]) current[keys[i]] = {};
-                current[keys[i]] = { ...current[keys[i]] };
+                if (!current[keys[i]]) {
+                    current[keys[i]] = {};
+                }
                 current = current[keys[i]];
             }
             
             current[keys[keys.length - 1]] = value;
+            
+            console.log(`Updated ${path} to:`, value);
+            console.log('New entreprise state:', newData);
+            
             return newData;
         });
     };
@@ -293,14 +335,41 @@ const ProfilePage: React.FC = () => {
             </Paper>
 
             {/* Messages */}
+            {editing && (
+                <Alert
+                    severity="info"
+                    sx={{ 
+                        mb: 3, 
+                        borderRadius: 3,
+                        border: 2,
+                        borderColor: theme.palette.info.main,
+                        bgcolor: alpha(theme.palette.info.main, 0.05)
+                    }}
+                >
+                    <Typography variant="body2" fontWeight={600}>
+                        Mode édition activé
+                    </Typography>
+                    <Typography variant="caption">
+                        Modifiez les informations puis cliquez sur "Enregistrer" pour sauvegarder vos changements.
+                    </Typography>
+                </Alert>
+            )}
+
             {success && (
                 <Alert
                     severity="success"
                     onClose={() => setSuccess(null)}
-                    sx={{ mb: 3, borderRadius: 2 }}
-                    icon={<CheckCircle />}
+                    sx={{ 
+                        mb: 3, 
+                        borderRadius: 3,
+                        border: 2,
+                        borderColor: theme.palette.success.main,
+                        bgcolor: alpha(theme.palette.success.main, 0.05)
+                    }}
                 >
-                    {success}
+                    <Typography variant="body2" fontWeight={600}>
+                        {success}
+                    </Typography>
                 </Alert>
             )}
 
@@ -308,9 +377,17 @@ const ProfilePage: React.FC = () => {
                 <Alert
                     severity="error"
                     onClose={() => setError(null)}
-                    sx={{ mb: 3, borderRadius: 2 }}
+                    sx={{ 
+                        mb: 3, 
+                        borderRadius: 3,
+                        border: 2,
+                        borderColor: theme.palette.error.main,
+                        bgcolor: alpha(theme.palette.error.main, 0.05)
+                    }}
                 >
-                    {error}
+                    <Typography variant="body2" fontWeight={600}>
+                        {error}
+                    </Typography>
                 </Alert>
             )}
 
@@ -343,9 +420,15 @@ const ProfilePage: React.FC = () => {
                 {/* Identification */}
                 <TabPanel value={tabValue} index={0}>
                     <Box sx={{ p: 3 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                            Informations d'Identification
-                        </Typography>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Informations d'Identification
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Renseignez les informations de base de votre entreprise. Les champs marqués d'un * sont obligatoires.
+                                </Typography>
+                            </Box>
 
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={6}>
@@ -475,15 +558,22 @@ const ProfilePage: React.FC = () => {
                                 />
                             </Grid>
                         </Grid>
+                        </Stack>
                     </Box>
                 </TabPanel>
 
                 {/* Performance Économique */}
                 <TabPanel value={tabValue} index={1}>
                     <Box sx={{ p: 3 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                            Performance Économique et Financière
-                        </Typography>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Performance Économique et Financière
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Renseignez vos indicateurs financiers : chiffre d'affaires, évolution, trésorerie et sources de financement.
+                                </Typography>
+                            </Box>
 
                         <Grid container spacing={3}>
                             <Grid item xs={12}>
@@ -638,15 +728,22 @@ const ProfilePage: React.FC = () => {
                                 />
                             </Grid>
                         </Grid>
+                        </Stack>
                     </Box>
                 </TabPanel>
 
                 {/* Emploi & Investissement */}
                 <TabPanel value={tabValue} index={2}>
                     <Box sx={{ p: 3 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                            Emploi et Investissement
-                        </Typography>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Emploi et Investissement
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Informations sur vos effectifs, créations d'emplois et types d'investissements réalisés.
+                                </Typography>
+                            </Box>
 
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={6}>
@@ -750,15 +847,22 @@ const ProfilePage: React.FC = () => {
                                 />
                             </Grid>
                         </Grid>
+                        </Stack>
                     </Box>
                 </TabPanel>
 
                 {/* Innovation */}
                 <TabPanel value={tabValue} index={3}>
                     <Box sx={{ p: 3 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                            Innovation et Digitalisation
-                        </Typography>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Innovation et Digitalisation
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Évaluez le niveau d'intégration de l'innovation, de l'économie numérique et de l'IA dans votre entreprise (1: Faible, 2: Moyenne, 3: Élevée).
+                                </Typography>
+                            </Box>
 
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={4}>
@@ -813,15 +917,22 @@ const ProfilePage: React.FC = () => {
                                 </TextField>
                             </Grid>
                         </Grid>
+                        </Stack>
                     </Box>
                 </TabPanel>
 
                 {/* Contact */}
                 <TabPanel value={tabValue} index={4}>
                     <Box sx={{ p: 3 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                            Informations de Contact
-                        </Typography>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Informations de Contact
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Coordonnées de contact de votre entreprise : email, téléphone, site web et adresse complète.
+                                </Typography>
+                            </Box>
 
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={6}>
@@ -931,9 +1042,54 @@ const ProfilePage: React.FC = () => {
                                 />
                             </Grid>
                         </Grid>
+                        </Stack>
                     </Box>
                 </TabPanel>
             </Paper>
+
+            {/* Sticky Save Button en mode édition */}
+            {editing && (
+                <Paper
+                    elevation={4}
+                    sx={{
+                        position: 'fixed',
+                        bottom: 24,
+                        right: 24,
+                        p: 2,
+                        borderRadius: 4,
+                        zIndex: 1000,
+                        border: 2,
+                        borderColor: theme.palette.success.main,
+                        bgcolor: 'white'
+                    }}
+                >
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <Typography variant="body2" fontWeight={600} color="text.secondary">
+                            Modifications non enregistrées
+                        </Typography>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleCancel}
+                            disabled={saving}
+                            startIcon={<Cancel />}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            variant="contained"
+                            size="small"
+                            color="success"
+                            onClick={handleSave}
+                            disabled={saving}
+                            startIcon={saving ? <CircularProgress size={16} /> : <Save />}
+                            sx={{ fontWeight: 700 }}
+                        >
+                            {saving ? 'Enregistrement...' : 'Enregistrer'}
+                        </Button>
+                    </Stack>
+                </Paper>
+            )}
         </Box>
     );
 };

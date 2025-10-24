@@ -25,6 +25,7 @@ import AdminScheduledExports from '../pages/Admin/AdminScheduledExports';
 import AdminReportTemplates from '../pages/Admin/AdminReportTemplates';
 import AdminEntreprises from '../pages/Admin/AdminEntreprises';
 import AdminFormBuilder from '../pages/Admin/AdminFormBuilder';
+import AdminAIChats from '../pages/Admin/AdminAIChats';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -61,6 +62,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="approvals" element={<AdminApprovals />} />
         <Route path="scheduled-exports" element={<AdminScheduledExports />} />
         <Route path="report-templates" element={<AdminReportTemplates />} />
+        <Route path="ai-chats" element={<AdminAIChats />} />
       </Route>
     </Routes>
   );

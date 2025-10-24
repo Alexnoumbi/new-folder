@@ -90,6 +90,7 @@ import {
   updateEntrepriseStatut,
   updateEntrepriseConformite,
   getEntrepriseComplete,
+  getEntrepriseEvolutionData,
   Entreprise, 
   EntrepriseStats 
 } from '../../services/entrepriseService';
@@ -110,6 +111,7 @@ const AdminEntreprises: React.FC = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [detailTab, setDetailTab] = useState(0);
   const [completeData, setCompleteData] = useState<any>(null);
+  const [entrepriseEvolution, setEntrepriseEvolution] = useState<any>(null);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
   const [statusChangeDialog, setStatusChangeDialog] = useState(false);
@@ -193,11 +195,22 @@ const AdminEntreprises: React.FC = () => {
     setOpenDialog(true);
     setDetailTab(0);
     
-    // Load complete data
+    // Load complete data and evolution data
     setLoadingComplete(true);
     try {
-      const data = await getEntrepriseComplete(entreprise._id);
-      setCompleteData(data);
+      const [completeDataResult, evolutionDataResult] = await Promise.all([
+        getEntrepriseComplete(entreprise._id),
+        getEntrepriseEvolutionData(entreprise._id).catch(err => {
+          console.log('Evolution data not available:', err);
+          return null;
+        })
+      ]);
+      
+      setCompleteData(completeDataResult);
+      setEntrepriseEvolution(evolutionDataResult);
+      
+      console.log('Complete data loaded:', completeDataResult);
+      console.log('Evolution data loaded:', evolutionDataResult);
     } catch (error) {
       console.error('Error loading complete data:', error);
       setSnackbar({
@@ -984,13 +997,14 @@ const AdminEntreprises: React.FC = () => {
               </Stack>
               
               {/* Tabs */}
-              <Tabs value={detailTab} onChange={(_, v) => setDetailTab(v)} sx={{ mt: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs value={detailTab} onChange={(_, v) => setDetailTab(v)} sx={{ mt: 2, borderBottom: 1, borderColor: 'divider' }} variant="scrollable" scrollButtons="auto">
                 <Tab label="Informations" />
                 <Tab label={`Documents (${completeData?.documents?.length || 0})`} />
                 <Tab label={`Rapports (${completeData?.reports?.length || 0})`} />
                 <Tab label={`KPIs (${completeData?.kpis?.length || 0})`} />
                 <Tab label={`Messages (${completeData?.messages?.length || 0})`} />
                 <Tab label={`Visites (${completeData?.visits?.length || 0})`} />
+                <Tab label="Évolution" icon={<Timeline />} iconPosition="start" />
               </Tabs>
             </DialogTitle>
             <DialogContent>
@@ -1212,6 +1226,126 @@ const AdminEntreprises: React.FC = () => {
                     </List>
                   ) : (
                     <Alert severity="info">Aucune visite disponible</Alert>
+                  )}
+                </Box>
+              )}
+
+              {/* Tab 6: Évolution */}
+              {detailTab === 6 && (
+                <Box sx={{ p: 3 }}>
+                  <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                    Graphiques d'Évolution
+                  </Typography>
+                  
+                  {loadingComplete ? (
+                    <Box display="flex" justifyContent="center" p={4}>
+                      <CircularProgress />
+                    </Box>
+                  ) : entrepriseEvolution ? (
+                    <Stack spacing={4}>
+                      {/* Évolution du Personnel */}
+                      <Paper sx={{ p: 3, borderRadius: 3, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="h6" fontWeight={600} gutterBottom>
+                          Évolution du Personnel
+                        </Typography>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <AreaChart data={entrepriseEvolution.personnel || []}>
+                            <defs>
+                              <linearGradient id="colorEffectifs" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" tickFormatter={(val) => format(new Date(val), 'MMM yyyy', {locale: fr})} />
+                            <YAxis />
+                            <RechartsTooltip />
+                            <Legend />
+                            <Area type="monotone" dataKey="effectifs" stroke={theme.palette.primary.main} fillOpacity={1} fill="url(#colorEffectifs)" name="Effectifs" />
+                            <Area type="monotone" dataKey="nouveauxEmplois" stroke={theme.palette.success.main} fill={theme.palette.success.light} name="Nouveaux Emplois" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </Paper>
+
+                      {/* Évolution Financière */}
+                      <Paper sx={{ p: 3, borderRadius: 3, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="h6" fontWeight={600} gutterBottom>
+                          Évolution Financière
+                        </Typography>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={entrepriseEvolution.financier || []}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" tickFormatter={(val) => format(new Date(val), 'MMM yyyy', {locale: fr})} />
+                            <YAxis />
+                            <RechartsTooltip formatter={(value) => `${value.toLocaleString()} FCFA`} />
+                            <Legend />
+                            <Bar dataKey="ca" fill={theme.palette.success.main} name="Chiffre d'Affaires" />
+                            <Bar dataKey="couts" fill={theme.palette.error.main} name="Coûts de Production" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </Paper>
+
+                      {/* Indicateurs Clés */}
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} md={4}>
+                          <Card sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05), border: 1, borderColor: alpha(theme.palette.primary.main, 0.2) }}>
+                            <CardContent>
+                              <Stack direction="row" spacing={2} alignItems="center">
+                                <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+                                  <People />
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">Effectifs Actuels</Typography>
+                                  <Typography variant="h5" fontWeight={800} color="primary">
+                                    {entrepriseEvolution.currentData?.effectifs || 0}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                          <Card sx={{ bgcolor: alpha(theme.palette.success.main, 0.05), border: 1, borderColor: alpha(theme.palette.success.main, 0.2) }}>
+                            <CardContent>
+                              <Stack direction="row" spacing={2} alignItems="center">
+                                <Avatar sx={{ bgcolor: theme.palette.success.main }}>
+                                  <AttachMoney />
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">CA Actuel</Typography>
+                                  <Typography variant="h5" fontWeight={800} color="success.main">
+                                    {entrepriseEvolution.currentData?.ca ? `${(entrepriseEvolution.currentData.ca / 1000000).toFixed(1)}M` : '0'}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                          <Card sx={{ bgcolor: alpha(theme.palette.info.main, 0.05), border: 1, borderColor: alpha(theme.palette.info.main, 0.2) }}>
+                            <CardContent>
+                              <Stack direction="row" spacing={2} alignItems="center">
+                                <Avatar sx={{ bgcolor: theme.palette.info.main }}>
+                                  <TrendingUp />
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">Trésorerie</Typography>
+                                  <Typography variant="h6" fontWeight={800} color="info.main">
+                                    {entrepriseEvolution.currentData?.tresorerie || 'N/A'}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      </Grid>
+                    </Stack>
+                  ) : (
+                    <Alert severity="info">
+                      Données d'évolution non disponibles pour cette entreprise.
+                    </Alert>
                   )}
                 </Box>
               )}

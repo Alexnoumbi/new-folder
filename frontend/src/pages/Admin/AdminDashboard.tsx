@@ -74,6 +74,8 @@ import {
 import { getDashboardStats } from '../../services/dashboardService';
 import { AdminStats } from '../../types/admin.types';
 import { getEntreprisesEvolution, EntrepriseEvolutionPoint } from '../../services/dashboardService';
+import AIFloatingButton from '../../components/AI/AIFloatingButton';
+import AIChatModal from '../../components/AI/AIChatModal';
 
 interface MetricCardProps {
   title: string;
@@ -195,6 +197,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30d');
+  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -407,6 +410,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
+    <>
     <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
@@ -816,6 +820,22 @@ const AdminDashboard: React.FC = () => {
           </Grid>
         </Grid>
       </Container>
+
+      {/* AI Floating Button */}
+      <AIFloatingButton
+        type="admin"
+        onClick={() => setShowAIChat(true)}
+        hasUnreadMessages={false}
+        badgeCount={0}
+      />
+
+      {/* AI Chat Modal */}
+      <AIChatModal
+        type="admin"
+        open={showAIChat}
+        onClose={() => setShowAIChat(false)}
+      />
+    </>
   );
 };
 

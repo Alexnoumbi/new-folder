@@ -45,8 +45,16 @@ const SubmissionRequestSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['LANDING_PAGE', 'DIRECT_CONTACT', 'REFERRAL', 'OTHER'],
+    enum: ['LANDING_PAGE', 'DIRECT_CONTACT', 'REFERRAL', 'OTHER', 'AI_ESCALATION'],
     default: 'LANDING_PAGE'
+  },
+  conversationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AIConversation'
+  },
+  aiContext: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   notes: {
     type: String

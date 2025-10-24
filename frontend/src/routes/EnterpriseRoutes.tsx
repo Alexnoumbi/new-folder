@@ -5,6 +5,7 @@ import EnterpriseDashboard from '../pages/Enterprise/EnterpriseDashboard';
 import DocumentsPage from '../pages/Enterprise/DocumentsPage';
 import MessagesPage from '../pages/Enterprise/MessagesPage';
 import ProfilePage from '../pages/Enterprise/ProfilePage';
+import EnterpriseAISupport from '../pages/Enterprise/EnterpriseAISupport';
 import { useAuth } from '../hooks/useAuth';
 
 const EnterpriseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,6 +46,9 @@ const EnterpriseRoutes: React.FC = () => {
 
         {/* Profile route */}
         <Route path="profile" element={<ProfilePage />} />
+
+        {/* AI Support route */}
+        <Route path="ai-support" element={<EnterpriseAISupport />} />
       </Route>
     </Routes>
   );

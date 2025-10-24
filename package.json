@@ -1,0 +1,28 @@
+{
+  "name": "api-gestion-app",
+  "version": "1.0.0",
+  "description": "Application de gestion d'entreprises avec frontend React et backend Node.js",
+  "main": "server/server.js",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd server && npm install && npm start",
+    "dev": "concurrently \"cd frontend && npm start\" \"cd server && npm run dev\"",
+    "install:all": "npm install && cd frontend && npm install && cd ../server && npm install",
+    "vercel-build": "cd frontend && npm install && npm run build"
+  },
+  "keywords": [
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "vercel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -49,7 +49,8 @@ const routes = {
   public: require('./routes/public'),
   indicators: require('./routes/indicators'),
   messages: require('./routes/messages'),
-  workflows: require('./routes/workflows')
+  workflows: require('./routes/workflows'),
+  aiChat: require('./routes/aiChat')
 };
 
 // Configuration des routes
@@ -75,6 +76,7 @@ app.use('/api/enhanced-reports', routes.enhancedReports);
 app.use('/api/indicators', routes.indicators);
 app.use('/api/messages', routes.messages);
 app.use('/api/workflows', routes.workflows);
+app.use('/api/ai-chat', routes.aiChat);
 
 // Servir les fichiers uploadés
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
