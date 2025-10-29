@@ -1,0 +1,404 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2024-12-01",
+    "description": "Base de connaissances pour l'assistant administrateur",
+    "totalEntries": 156
+  },
+  "categories": {
+    "statistics": {
+      "name": "Statistiques Système",
+      "description": "Données quantitatives et métriques du système",
+      "entries": [
+        {
+          "id": "stats_users_total",
+          "question": "combien d'utilisateurs",
+          "keywords": ["utilisateurs", "total", "nombre", "compte", "user"],
+          "answer": "Le système compte actuellement **1,247 utilisateurs** enregistrés.",
+          "details": {
+            "administrateurs": 3,
+            "entreprises": 156,
+            "utilisateurs_basiques": 1088,
+            "actifs_aujourd_hui": 89,
+            "nouveaux_ce_mois": 47
+          },
+          "confidence": 0.95
+        },
+        {
+          "id": "stats_enterprises_total",
+          "question": "combien d'entreprises",
+          "keywords": ["entreprises", "company", "société", "total", "nombre"],
+          "answer": "Le système compte **156 entreprises** enregistrées.",
+          "details": {
+            "en_attente": 12,
+            "validees": 144,
+            "actives": 138,
+            "inactives": 6,
+            "suspendues": 0
+          },
+          "confidence": 0.95
+        },
+        {
+          "id": "stats_performance",
+          "question": "performance système",
+          "keywords": ["performance", "uptime", "temps", "réponse", "disponibilité"],
+          "answer": "**Performance système excellente** :\n• Uptime : 99.8%\n• Temps de réponse : 89ms\n• Taux de conversion : 87.3%\n• Satisfaction : 4.8/5",
+          "details": {
+            "uptime": "99.8%",
+            "response_time": "89ms",
+            "conversion_rate": "87.3%",
+            "satisfaction": "4.8/5",
+            "error_rate": "0.01%"
+          },
+          "confidence": 0.90
+        }
+      ]
+    },
+    "user_management": {
+      "name": "Gestion Utilisateurs",
+      "description": "Actions et procédures pour la gestion des utilisateurs",
+      "entries": [
+        {
+          "id": "user_create",
+          "question": "comment créer un utilisateur",
+          "keywords": ["créer", "nouveau", "utilisateur", "compte", "create"],
+          "answer": "**Création d'un utilisateur** :\n1. Accéder à `/admin/users/create`\n2. Remplir le formulaire complet\n3. Sélectionner le rôle (Admin/Entreprise/Utilisateur)\n4. Validation automatique de l'email\n5. Envoi automatique des identifiants",
+          "steps": [
+            "Accéder au formulaire de création",
+            "Remplir les informations personnelles",
+            "Sélectionner le rôle approprié",
+            "Valider l'unicité de l'email",
+            "Générer un mot de passe sécurisé",
+            "Envoyer les identifiants par email"
+          ],
+          "confidence": 0.90
+        },
+        {
+          "id": "user_modify",
+          "question": "comment modifier un utilisateur",
+          "keywords": ["modifier", "edit", "changer", "utilisateur", "profil"],
+          "answer": "**Modification d'un utilisateur** :\n1. Accéder à `/admin/users/edit/{id}`\n2. Modifier les informations personnelles\n3. Changer les rôles si nécessaire\n4. Activer/Désactiver le compte\n5. Sauvegarder les modifications",
+          "steps": [
+            "Localiser l'utilisateur",
+            "Ouvrir le formulaire d'édition",
+            "Modifier les champs nécessaires",
+            "Vérifier les permissions",
+            "Sauvegarder les changements"
+          ],
+          "confidence": 0.90
+        },
+        {
+          "id": "user_roles",
+          "question": "types de rôles utilisateurs",
+          "keywords": ["rôles", "permissions", "types", "compte", "accès"],
+          "answer": "**Types de rôles disponibles** :\n• **Administrateurs** (3) : Accès complet, gestion système\n• **Entreprises** (156) : Accès limité à leurs données\n• **Utilisateurs basiques** (1,088) : Accès lecture seule",
+          "details": {
+            "admin": {
+              "count": 3,
+              "permissions": "Accès complet",
+              "description": "Gestion système complète"
+            },
+            "entreprise": {
+              "count": 156,
+              "permissions": "Données propres uniquement",
+              "description": "Accès limité aux données de l'entreprise"
+            },
+            "utilisateur": {
+              "count": 1088,
+              "permissions": "Lecture seule",
+              "description": "Consultation des informations publiques"
+            }
+          },
+          "confidence": 0.95
+        }
+      ]
+    },
+    "enterprise_management": {
+      "name": "Gestion Entreprises",
+      "description": "Actions et procédures pour la gestion des entreprises",
+      "entries": [
+        {
+          "id": "enterprise_validate",
+          "question": "comment valider une entreprise",
+          "keywords": ["valider", "entreprise", "approbation", "validation", "approuver"],
+          "answer": "**Validation d'une entreprise** :\n1. Accéder à `/admin/enterprises/validate`\n2. Consulter les informations soumises\n3. Vérifier la conformité des documents\n4. Approuver ou rejeter la demande\n5. Notification automatique à l'entreprise",
+          "steps": [
+            "Consulter la liste des entreprises en attente",
+            "Examiner les documents fournis",
+            "Vérifier la cohérence des informations",
+            "Valider ou rejeter la demande",
+            "Notifier l'entreprise du résultat"
+          ],
+          "confidence": 0.90
+        },
+        {
+          "id": "enterprise_sectors",
+          "question": "secteurs d'entreprises",
+          "keywords": ["secteurs", "domaines", "industrie", "branche", "sector"],
+          "answer": "**Répartition par secteurs** :\n• **Technologie** : 45 entreprises (28.8%)\n• **Finance** : 32 entreprises (20.5%)\n• **Santé** : 28 entreprises (17.9%)\n• **Éducation** : 24 entreprises (15.4%)\n• **Industrie** : 18 entreprises (11.5%)\n• **Services** : 9 entreprises (5.8%)",
+          "details": {
+            "technologie": {"count": 45, "percentage": 28.8},
+            "finance": {"count": 32, "percentage": 20.5},
+            "sante": {"count": 28, "percentage": 17.9},
+            "education": {"count": 24, "percentage": 15.4},
+            "industrie": {"count": 18, "percentage": 11.5},
+            "services": {"count": 9, "percentage": 5.8}
+          },
+          "confidence": 0.95
+        },
+        {
+          "id": "enterprise_pending",
+          "question": "entreprises en attente",
+          "keywords": ["attente", "en attente", "pending", "validation", "en cours"],
+          "answer": "**12 entreprises en attente de validation** :\n• TechCorp Solutions (Technologie)\n• FinancePro Ltd (Finance)\n• HealthCare Plus (Santé)\n• EduTech Innovations (Éducation)\n• [8 autres entreprises]",
+          "details": {
+            "total_pending": 12,
+            "examples": [
+              "TechCorp Solutions",
+              "FinancePro Ltd", 
+              "HealthCare Plus",
+              "EduTech Innovations"
+            ],
+            "average_waiting_time": "3 jours"
+          },
+          "confidence": 0.90
+        }
+      ]
+    },
+    "reports": {
+      "name": "Rapports et Analyses",
+      "description": "Génération et types de rapports disponibles",
+      "entries": [
+        {
+          "id": "report_types",
+          "question": "types de rapports",
+          "keywords": ["rapports", "reports", "analyses", "types", "formats"],
+          "answer": "**6 types de rapports disponibles** :\n• Rapport mensuel global\n• Analyse des utilisateurs\n• Performance des entreprises\n• Statistiques de connexion\n• Audit de sécurité\n• Rapport financier",
+          "details": {
+            "monthly_global": "Vue d'ensemble complète",
+            "user_analysis": "Comportements et tendances",
+            "enterprise_performance": "KPIs et métriques",
+            "connection_stats": "Patterns d'utilisation",
+            "security_audit": "Logs et incidents",
+            "financial_report": "Revenus et coûts"
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "report_formats",
+          "question": "formats d'export",
+          "keywords": ["formats", "export", "télécharger", "download", "pdf", "excel"],
+          "answer": "**Formats d'export disponibles** :\n• **PDF** : Rapport formaté professionnel\n• **Excel** : Données brutes avec graphiques\n• **CSV** : Export pour analyse externe\n• **JSON** : Données structurées\n• **Graphiques interactifs** : Visualisations dynamiques",
+          "details": {
+            "pdf": "Format professionnel",
+            "excel": "Données avec graphiques",
+            "csv": "Analyse externe",
+            "json": "Données structurées",
+            "interactive": "Visualisations dynamiques"
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "report_periods",
+          "question": "périodes de rapports",
+          "keywords": ["périodes", "fréquence", "quotidien", "mensuel", "annuel"],
+          "answer": "**Périodes disponibles** :\n• **Quotidien** : Résumé de la journée\n• **Hebdomadaire** : Synthèse de la semaine\n• **Mensuel** : Rapport complet mensuel\n• **Trimestriel** : Analyse trimestrielle\n• **Annuel** : Bilan annuel complet",
+          "details": {
+            "daily": "Résumé quotidien",
+            "weekly": "Synthèse hebdomadaire",
+            "monthly": "Rapport mensuel complet",
+            "quarterly": "Analyse trimestrielle",
+            "yearly": "Bilan annuel"
+          },
+          "confidence": 0.90
+        }
+      ]
+    },
+    "system_configuration": {
+      "name": "Configuration Système",
+      "description": "Paramètres et configuration du système",
+      "entries": [
+        {
+          "id": "system_status",
+          "question": "état du système",
+          "keywords": ["état", "status", "système", "opérationnel", "disponible"],
+          "answer": "**État du système** :\n• **Serveur** : ✅ Opérationnel (99.8% uptime)\n• **Base de données** : ✅ Connectée (2ms latence)\n• **Services IA** : ✅ Disponibles (150ms réponse)\n• **Cache Redis** : ✅ Actif (95% hit rate)\n• **Monitoring** : ✅ En cours (24/7)",
+          "details": {
+            "server": {"status": "operational", "uptime": "99.8%"},
+            "database": {"status": "connected", "latency": "2ms"},
+            "ai_services": {"status": "available", "response_time": "150ms"},
+            "cache": {"status": "active", "hit_rate": "95%"},
+            "monitoring": {"status": "active", "schedule": "24/7"}
+          },
+          "confidence": 0.95
+        },
+        {
+          "id": "system_limits",
+          "question": "limites système",
+          "keywords": ["limites", "limits", "paramètres", "configuration", "restrictions"],
+          "answer": "**Limites configurées** :\n• Requêtes par minute : 1,000\n• Taille max upload : 50MB\n• Sessions simultanées : 500\n• Durée session : 8h\n• Tentatives échec : 5",
+          "details": {
+            "requests_per_minute": 1000,
+            "max_upload_size": "50MB",
+            "concurrent_sessions": 500,
+            "session_duration": "8h",
+            "max_failed_attempts": 5
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "system_maintenance",
+          "question": "maintenance système",
+          "keywords": ["maintenance", "sauvegarde", "backup", "mise à jour", "update"],
+          "answer": "**Maintenance programmée** :\n• **Sauvegardes** : Quotidiennes à 02:00\n• **Maintenance** : Dimanche à 03:00\n• **Mises à jour sécurité** : Automatiques\n• **Rétention logs** : 7 jours\n• **Compression** : Activée",
+          "details": {
+            "backup_frequency": "daily",
+            "backup_time": "02:00",
+            "maintenance_schedule": "sunday 03:00",
+            "security_updates": "automatic",
+            "log_retention": "7 days"
+          },
+          "confidence": 0.90
+        }
+      ]
+    },
+    "security": {
+      "name": "Sécurité et Audit",
+      "description": "Informations de sécurité et audit",
+      "entries": [
+        {
+          "id": "security_status",
+          "question": "état sécurité",
+          "keywords": ["sécurité", "security", "audit", "protection", "niveau"],
+          "answer": "**État de la sécurité** :\n• **Niveau** : Élevé (Score: 95/100)\n• **Authentification** : Multi-facteurs activée\n• **Chiffrement** : AES-256 + TLS 1.3\n• **Firewall** : Configuré et actif\n• **Monitoring** : Surveillance 24/7",
+          "details": {
+            "security_level": "high",
+            "security_score": 95,
+            "authentication": "multi-factor",
+            "encryption": "AES-256 + TLS 1.3",
+            "firewall": "active",
+            "monitoring": "24/7"
+          },
+          "confidence": 0.95
+        },
+        {
+          "id": "security_audit",
+          "question": "audit sécurité",
+          "keywords": ["audit", "logs", "connexions", "tentatives", "incidents"],
+          "answer": "**Audit récent (24h)** :\n• Connexions suspectes : 0 détectées\n• Tentatives d'intrusion : 0 bloquées\n• Violations détectées : 0 incidents\n• Tentatives échec : 12 connexions\n• Actions bloquées : 0 tentatives",
+          "details": {
+            "suspicious_connections": 0,
+            "intrusion_attempts": 0,
+            "violations": 0,
+            "failed_attempts": 12,
+            "blocked_actions": 0
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "security_recommendations",
+          "question": "recommandations sécurité",
+          "keywords": ["recommandations", "suggestions", "améliorations", "actions", "conseils"],
+          "answer": "**Recommandations sécurité** :\n• Mise à jour des mots de passe : 7 utilisateurs\n• Vérification des permissions : 3 comptes\n• Audit des accès : Rapport mensuel disponible\n• Formation sécurité : Session programmée\n• Test de pénétration : Planifié pour décembre",
+          "details": {
+            "password_updates": 7,
+            "permission_checks": 3,
+            "access_audit": "monthly_report_available",
+            "security_training": "scheduled",
+            "penetration_test": "planned_december"
+          },
+          "confidence": 0.85
+        }
+      ]
+    },
+    "performance": {
+      "name": "Performance et Monitoring",
+      "description": "Métriques de performance et monitoring",
+      "entries": [
+        {
+          "id": "performance_metrics",
+          "question": "métriques performance",
+          "keywords": ["performance", "métriques", "metrics", "cpu", "mémoire", "stockage"],
+          "answer": "**Métriques système** :\n• **CPU** : 45% utilisation (excellent)\n• **Mémoire RAM** : 65% utilisée (optimal)\n• **Stockage** : 78% utilisé (normal)\n• **Réseau** : 12% bande passante (faible charge)\n• **Température** : 42°C (optimal)",
+          "details": {
+            "cpu_usage": "45%",
+            "memory_usage": "65%",
+            "storage_usage": "78%",
+            "network_usage": "12%",
+            "temperature": "42°C"
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "performance_app",
+          "question": "performance applicative",
+          "keywords": ["performance", "applicative", "réponse", "disponibilité", "erreurs"],
+          "answer": "**Performance applicative** :\n• Temps de réponse moyen : 89ms (excellent)\n• Disponibilité : 99.8% (objectif: 99.5%)\n• Taux d'erreur : 0.01% (très faible)\n• Throughput : 1,247 req/min (normal)\n• Latence P95 : 156ms (bon)",
+          "details": {
+            "response_time": "89ms",
+            "availability": "99.8%",
+            "error_rate": "0.01%",
+            "throughput": "1247 req/min",
+            "latency_p95": "156ms"
+          },
+          "confidence": 0.90
+        },
+        {
+          "id": "performance_optimizations",
+          "question": "optimisations performance",
+          "keywords": ["optimisations", "cache", "optimized", "améliorations", "performance"],
+          "answer": "**Optimisations appliquées** :\n• Cache optimisé : 95% hit rate\n• Base de données indexée : Requêtes optimisées\n• Services IA optimisés : 150ms réponse\n• CDN configuré : Contenu statique optimisé\n• Compression activée : 60% réduction taille",
+          "details": {
+            "cache_hit_rate": "95%",
+            "database_indexed": true,
+            "ai_services_optimized": "150ms",
+            "cdn_configured": true,
+            "compression_enabled": "60%"
+          },
+          "confidence": 0.90
+        }
+      ]
+    }
+  },
+  "quick_actions": {
+    "create_user": {
+      "action": "Créer un utilisateur",
+      "url": "/admin/users/create",
+      "description": "Formulaire de création d'utilisateur"
+    },
+    "validate_enterprise": {
+      "action": "Valider une entreprise",
+      "url": "/admin/enterprises/validate",
+      "description": "Processus de validation d'entreprise"
+    },
+    "generate_report": {
+      "action": "Générer un rapport",
+      "url": "/admin/reports/generate",
+      "description": "Génération de rapports automatiques"
+    },
+    "system_config": {
+      "action": "Configuration système",
+      "url": "/admin/system/config",
+      "description": "Paramètres de configuration"
+    },
+    "security_logs": {
+      "action": "Logs de sécurité",
+      "url": "/admin/system/logs",
+      "description": "Consultation des logs de sécurité"
+    }
+  },
+  "common_questions": {
+    "greeting": {
+      "patterns": ["bonjour", "salut", "hello", "hi"],
+      "response": "Bonjour ! Je suis votre assistant IA administrateur. Comment puis-je vous aider ?"
+    },
+    "help": {
+      "patterns": ["aide", "help", "assistance", "comment"],
+      "response": "Je peux vous aider avec la gestion des utilisateurs, entreprises, rapports, configuration système et sécurité."
+    },
+    "thanks": {
+      "patterns": ["merci", "thanks", "thank you"],
+      "response": "Je vous en prie ! N'hésitez pas si vous avez d'autres questions."
+    }
+  }
+}

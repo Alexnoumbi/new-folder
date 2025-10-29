@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
     requestVisit,
     getEnterpriseVisits,
@@ -16,13 +17,13 @@ router.get('/all', getAllVisits);
 router.post('/request', requestVisit);
 router.get('/enterprise/:enterpriseId', getEnterpriseVisits);
 
-// Routes de gestion
-router.put('/:id/cancel', cancelVisit);
-router.put('/:id/assign-inspector', assignInspector);
-router.put('/:id/status', updateVisitStatus);
+// Routes de gestion (avec authentification)
+router.put('/:id/cancel', protect, cancelVisit);
+router.put('/:id/assign-inspector', protect, assignInspector);
+router.put('/:id/status', protect, updateVisitStatus);
 
-// Routes des rapports
-router.post('/:id/report', submitVisitReport);
-router.get('/:id/report/download', downloadReport);
+// Routes des rapports (avec authentification)
+router.post('/:id/report', protect, submitVisitReport);
+router.get('/:id/report/download', protect, downloadReport);
 
 module.exports = router;

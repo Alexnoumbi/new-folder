@@ -48,8 +48,8 @@ import {
   getEntrepriseSnapshots,
   getEntrepriseActivityLog
 } from '../../services/entrepriseService';
-import AIFloatingButton from '../../components/AI/AIFloatingButton';
-import AIChatModal from '../../components/AI/AIChatModal';
+import AssistantFloatingButton from '../../components/Assistant/AssistantFloatingButton';
+import AssistantWrapper from '../../components/Assistant/AssistantWrapper';
 
 interface MetricCardProps {
   title: string;
@@ -174,7 +174,7 @@ const EnterpriseDashboard: React.FC = () => {
   const [evolution, setEvolution] = useState<any>(null);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [showAIChat, setShowAIChat] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -723,19 +723,19 @@ const EnterpriseDashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* AI Floating Button */}
-      <AIFloatingButton
+      {/* Assistant Floating Button */}
+      <AssistantFloatingButton
         type="entreprise"
-        onClick={() => setShowAIChat(true)}
+        onClick={() => setShowAssistant(true)}
         hasUnreadMessages={false}
         badgeCount={0}
       />
 
-      {/* AI Chat Modal */}
-      <AIChatModal
-        type="entreprise"
-        open={showAIChat}
-        onClose={() => setShowAIChat(false)}
+      {/* Assistant Modal */}
+      <AssistantWrapper
+        open={showAssistant}
+        onClose={() => setShowAssistant(false)}
+        showAdvancedFeatures={false}
       />
     </Container>
   );

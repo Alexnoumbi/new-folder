@@ -81,7 +81,7 @@ import { getComplianceStatus } from '../../services/complianceService';
 import { ComplianceStatus } from '../../types/compliance.types';
 import entrepriseService, { Entreprise } from '../../services/entrepriseService';
 import visitService, { Visit } from '../../services/visitService';
-import axios from 'axios';
+import api from '../../services/api';
 
 type VisitType = Visit['type'];
 type VisitOutcome = NonNullable<Visit['report']>['outcome'];
@@ -143,7 +143,7 @@ const AdminCompliance: React.FC = () => {
             console.time('Fetch All Visits');
             setLoadingProgress(prev => ({ ...prev, visits: true }));
             
-            const response = await axios.get('http://localhost:5000/api/visites/all');
+            const response = await api.get('/visites/all');
             const allVisits: Visit[] = response.data.data || response.data || [];
             
             // Une visite est "à venir" si elle n'est pas complétée (peu importe la date)
@@ -179,7 +179,7 @@ const AdminCompliance: React.FC = () => {
                         console.time('Fetch Entreprises');
                         setLoadingProgress(prev => ({ ...prev, entreprises: true }));
                         try {
-                            const response = await axios.get('http://localhost:5000/api/entreprises?light=true');
+                            const response = await api.get('/entreprises?light=true');
                             const list = response.data.data || response.data || [];
                 setEntreprises(list);
                             console.log(`✅ Loaded ${list.length} entreprises (light mode)`);
@@ -965,10 +965,11 @@ const AdminCompliance: React.FC = () => {
                                                                 startIcon={<CheckCircle />}
                                                                 onClick={async () => {
                                                                     try {
-                                                                        await axios.put(`http://localhost:5000/api/visites/${visit._id}/status`, {
-                                                                            status: 'COMPLETED',
-                                                                            comment: 'Marquée comme terminée'
-                                                                        });
+                                                                        await visitService.updateVisitStatus(
+                                                                            visit._id,
+                                                                            'COMPLETED',
+                                                                            'Marquée comme terminée'
+                                                                        );
                                                                         await loadAllVisits();
                                                                         setSnackbar({ 
                                                                             open: true, 

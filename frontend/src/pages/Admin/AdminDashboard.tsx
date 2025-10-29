@@ -74,8 +74,8 @@ import {
 import { getDashboardStats } from '../../services/dashboardService';
 import { AdminStats } from '../../types/admin.types';
 import { getEntreprisesEvolution, EntrepriseEvolutionPoint } from '../../services/dashboardService';
-import AIFloatingButton from '../../components/AI/AIFloatingButton';
-import AIChatModal from '../../components/AI/AIChatModal';
+import AssistantFloatingButton from '../../components/Assistant/AssistantFloatingButton';
+import AssistantWrapper from '../../components/Assistant/AssistantWrapper';
 
 interface MetricCardProps {
   title: string;
@@ -197,7 +197,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30d');
-  const [showAIChat, setShowAIChat] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -821,19 +821,19 @@ const AdminDashboard: React.FC = () => {
         </Grid>
       </Container>
 
-      {/* AI Floating Button */}
-      <AIFloatingButton
+      {/* Assistant Floating Button */}
+      <AssistantFloatingButton
         type="admin"
-        onClick={() => setShowAIChat(true)}
+        onClick={() => setShowAssistant(true)}
         hasUnreadMessages={false}
         badgeCount={0}
       />
 
-      {/* AI Chat Modal */}
-      <AIChatModal
-        type="admin"
-        open={showAIChat}
-        onClose={() => setShowAIChat(false)}
+      {/* Assistant Modal */}
+      <AssistantWrapper
+        open={showAssistant}
+        onClose={() => setShowAssistant(false)}
+        showAdvancedFeatures={false}
       />
     </>
   );

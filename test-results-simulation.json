@@ -1,0 +1,179 @@
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "summary": {
+    "totalTests": 87,
+    "passed": 48,
+    "failed": 39,
+    "coverage": {
+      "backend": {
+        "statements": 75,
+        "branches": 70,
+        "functions": 80,
+        "lines": 75
+      },
+      "frontend": {
+        "statements": 0,
+        "branches": 0,
+        "functions": 0,
+        "lines": 0
+      },
+      "e2e": {
+        "scenarios": 0,
+        "passed": 0,
+        "failed": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "type": "Backend Unit Tests",
+      "success": true,
+      "details": {
+        "total": 36,
+        "passed": 36,
+        "failed": 0,
+        "coverage": "80%"
+      },
+      "testSuites": [
+        {
+          "name": "User Model",
+          "status": "PASS",
+          "tests": 18,
+          "passed": 18,
+          "failed": 0,
+          "duration": "7.011s"
+        },
+        {
+          "name": "Entreprise Model", 
+          "status": "PASS",
+          "tests": 18,
+          "passed": 18,
+          "failed": 0,
+          "duration": "5.443s"
+        }
+      ]
+    },
+    {
+      "type": "Backend Integration Tests",
+      "success": false,
+      "details": {
+        "total": 51,
+        "passed": 12,
+        "failed": 39,
+        "coverage": "60%"
+      },
+      "testSuites": [
+        {
+          "name": "Auth Registration",
+          "status": "FAIL",
+          "tests": 12,
+          "passed": 1,
+          "failed": 11,
+          "duration": "9.42s",
+          "issues": [
+            "Erreurs 500 sur les routes d'inscription",
+            "Problèmes de validation des données",
+            "Erreurs de création d'entreprise"
+          ]
+        },
+        {
+          "name": "Auth Login",
+          "status": "FAIL", 
+          "tests": 12,
+          "passed": 5,
+          "failed": 7,
+          "duration": "11.525s",
+          "issues": [
+            "Problèmes de réponse API",
+            "Validation des statuts utilisateur",
+            "Gestion des tokens JWT"
+          ]
+        },
+        {
+          "name": "Entreprise CRUD",
+          "status": "FAIL",
+          "tests": 27,
+          "passed": 6,
+          "failed": 21,
+          "duration": "15.4s",
+          "issues": [
+            "Erreurs de validation du modèle Entreprise",
+            "Problèmes d'authentification",
+            "Gestion des permissions"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Frontend Unit Tests",
+      "success": false,
+      "details": {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "coverage": "0%"
+      },
+      "issues": [
+        "Tests non exécutés - configuration en cours",
+        "Composants Button et services auth créés",
+        "Hooks useAuth configurés"
+      ]
+    },
+    {
+      "type": "Frontend Integration Tests",
+      "success": false,
+      "details": {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "coverage": "0%"
+      },
+      "issues": [
+        "Tests non exécutés - configuration en cours",
+        "Pages admin et entreprise à tester",
+        "Flux d'authentification à valider"
+      ]
+    },
+    {
+      "type": "E2E Tests",
+      "success": false,
+      "details": {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "coverage": "0%"
+      },
+      "issues": [
+        "Tests non exécutés - configuration en cours",
+        "Parcours admin et entreprise créés",
+        "Playwright configuré"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Corriger les erreurs de validation du modèle Entreprise (effectifsEmployes requis)",
+    "Résoudre les erreurs 500 dans les routes d'authentification",
+    "Implémenter la gestion des statuts utilisateur (inactif, pending)",
+    "Corriger les problèmes de permissions dans les routes entreprises",
+    "Exécuter les tests frontend une fois la configuration terminée",
+    "Lancer les tests E2E après correction des problèmes backend",
+    "Améliorer la couverture de code pour atteindre 80% minimum"
+  ],
+  "nextSteps": [
+    "1. Corriger le modèle Entreprise pour rendre effectifsEmployes optionnel ou fournir une valeur par défaut",
+    "2. Déboguer les routes d'authentification pour identifier les erreurs 500",
+    "3. Implémenter la validation des statuts utilisateur dans le contrôleur auth",
+    "4. Tester les routes entreprises avec des données valides",
+    "5. Exécuter les tests frontend avec npm test dans le dossier frontend",
+    "6. Lancer les tests E2E avec npx playwright test",
+    "7. Générer un rapport de couverture complet"
+  ],
+  "metrics": {
+    "executionTime": "16.751s",
+    "memoryUsage": "45MB",
+    "testSuites": 5,
+    "criticalIssues": 3,
+    "warnings": 2
+  }
+}
+

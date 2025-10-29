@@ -1,0 +1,78 @@
+[
+  {
+    "id": 1,
+    "question": "Bonjour",
+    "answer": "Bonjour ! Je suis votre assistant IA administrateur. Je peux vous aider avec la gestion des utilisateurs, entreprises, statistiques, rapports, configuration système, sécurité et monitoring. Que souhaitez-vous savoir ?"
+  },
+  {
+    "id": 2,
+    "question": "Quels sont vos horaires d'ouverture ?",
+    "answer": "La plateforme TrackImpact est accessible 24/7. Pour l'assistance administrative, nous sommes disponibles du lundi au vendredi de 9h à 18h, et le samedi de 10h à 16h."
+  },
+  {
+    "id": 3,
+    "question": "Comment puis-je vous contacter ?",
+    "answer": "Vous pouvez nous contacter par email à contact@trackimpact.com ou par téléphone au +237 XXX XXX XXX. Pour les urgences techniques, contactez support@trackimpact.com"
+  },
+  {
+    "id": 4,
+    "question": "Combien d'utilisateurs sont enregistrés ?",
+    "answer": "Actuellement, votre plateforme compte 1,247 utilisateurs enregistrés dont : 3 administrateurs, 156 comptes entreprises et 1,088 utilisateurs basiques. 89 utilisateurs sont actifs aujourd'hui."
+  },
+  {
+    "id": 5,
+    "question": "Quelles entreprises sont en attente de validation ?",
+    "answer": "Il y a actuellement 12 entreprises en attente de validation. Pour valider ces entreprises, accédez à la section 'Gestion Entreprises' dans le tableau de bord. Les entreprises en attente sont visibles avec un badge 'En attente'."
+  },
+  {
+    "id": 6,
+    "question": "Comment créer un nouvel utilisateur ?",
+    "answer": "Pour créer un nouvel utilisateur : 1) Accédez à 'Gestion Utilisateurs', 2) Cliquez sur 'Nouvel Utilisateur', 3) Remplissez le formulaire (nom, email, rôle, entreprise), 4) Validez. Un email sera envoyé automatiquement à l'utilisateur avec ses identifiants."
+  },
+  {
+    "id": 7,
+    "question": "Comment générer un rapport mensuel ?",
+    "answer": "Pour générer un rapport mensuel : 1) Allez dans 'Rapports et Analyses', 2) Sélectionnez 'Rapport Mensuel', 3) Choisissez la période, 4) Cliquez sur 'Générer', 5) Téléchargez au format PDF, Excel ou CSV."
+  },
+  {
+    "id": 8,
+    "question": "Quelle est la performance du système ?",
+    "answer": "Le système est opérationnel avec un uptime de 99.8%. Temps de réponse moyen : 89ms. Base de données : connectée (2ms latence). Services IA : disponibles (150ms réponse). Cache : 95% hit rate. Aucune alerte critique."
+  },
+  {
+    "id": 9,
+    "question": "Comment modifier les paramètres de sécurité ?",
+    "answer": "Pour modifier les paramètres de sécurité : 1) Accédez à 'Configuration Système', 2) Section 'Sécurité', 3) Ajustez les paramètres (durée de session, tentatives d'échec, chiffrement), 4) Sauvegardez. Le système utilise actuellement AES-256 et TLS 1.3."
+  },
+  {
+    "id": 10,
+    "question": "Quel est le score de sécurité actuel ?",
+    "answer": "Le niveau de sécurité est Élevé avec un score de 95/100. Authentification multi-facteurs activée, chiffrement AES-256 + TLS 1.3, firewall configuré, monitoring 24/7, détection d'intrusion IA activée. 0 connexions suspectes dans les dernières 24h."
+  },
+  {
+    "id": 11,
+    "question": "Comment suspendre un compte utilisateur ?",
+    "answer": "Pour suspendre un compte utilisateur : 1) Accédez à 'Gestion Utilisateurs', 2) Recherchez l'utilisateur, 3) Cliquez sur 'Actions', 4) Sélectionnez 'Suspendre', 5) Confirmez. L'utilisateur sera immédiatement déconnecté et ne pourra plus se connecter."
+  },
+  {
+    "id": 12,
+    "question": "Comment voir les statistiques détaillées ?",
+    "answer": "Les statistiques détaillées sont disponibles dans plusieurs sections : 'Vue d'ensemble' pour les métriques principales, 'Rapports' pour des analyses détaillées, 'Activity Logs' pour l'historique des actions. Le dashboard principal affiche les chiffres en temps réel."
+  },
+  {
+    "id": 13,
+    "question": "Quels sont les KPIs à surveiller ?",
+    "answer": "Les KPIs principaux à surveiller sont : Nombre d'utilisateurs actifs, Entreprises en attente de validation, Taux de conversion, Uptime système (objectif : 99.5%), Temps de réponse (objectif : <100ms), Alertes critiques, Taux d'erreur."
+  },
+  {
+    "id": 14,
+    "question": "Comment accéder aux logs de sécurité ?",
+    "answer": "Pour accéder aux logs de sécurité : 1) Allez dans 'Système et Sécurité', 2) Section 'Audit et Logs', 3) Filtrer par type (connexions, tentatives d'intrusion, actions administratives), 4) Exportez les logs au format souhaité."
+  },
+  {
+    "id": 15,
+    "question": "Combien d'entreprises sont validées ?",
+    "answer": "Sur 156 entreprises enregistrées, 144 sont validées (92.3%), 12 sont en attente de validation (7.7%), et 0 sont suspendues. 138 entreprises sont actives actuellement."
+  }
+]
+

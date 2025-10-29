@@ -50,7 +50,11 @@ const routes = {
   indicators: require('./routes/indicators'),
   messages: require('./routes/messages'),
   workflows: require('./routes/workflows'),
-  aiChat: require('./routes/aiChat')
+  aiChat: require('./routes/aiChat'),
+  hybridAI: require('./routes/hybridAI'),
+  optimizedAssistant: require('./routes/optimizedAssistant'),
+  advancedAssistant: require('./routes/advancedAssistant'),
+  enhancedAssistant: require('./routes/enhancedAssistant')
 };
 
 // Configuration des routes
@@ -77,6 +81,10 @@ app.use('/api/indicators', routes.indicators);
 app.use('/api/messages', routes.messages);
 app.use('/api/workflows', routes.workflows);
 app.use('/api/ai-chat', routes.aiChat);
+app.use('/api/hybrid-ai', routes.hybridAI);
+app.use('/api/assistant', routes.optimizedAssistant);
+app.use('/api/advanced-assistant', routes.advancedAssistant);
+app.use('/api/enhanced-assistant', routes.enhancedAssistant);
 
 // Servir les fichiers uploadés
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

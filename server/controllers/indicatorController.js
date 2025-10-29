@@ -1,5 +1,6 @@
 const Indicator = require('../models/Indicator');
 const KPI = require('../models/KPI');
+const Entreprise = require('../models/Entreprise');
 
 // Obtenir tous les indicateurs
 exports.getAllIndicators = async (req, res) => {
@@ -15,35 +16,42 @@ exports.getAllIndicators = async (req, res) => {
 
     console.log('Filter:', filter);
 
-    // D'abord essayer sans populate pour voir si le modèle fonctionne
+    // Récupérer les indicateurs avec populate sélectif et gestion d'erreur
     let indicators;
     try {
-      indicators = await Indicator.find(filter).sort({ createdAt: -1 });
+      // Essayer d'abord sans populate pour vérifier que la requête de base fonctionne
+      indicators = await Indicator.find(filter).sort({ createdAt: -1 }).lean();
       console.log(`Found ${indicators.length} indicators (without populate)`);
       
-      // Ensuite populate progressivement
-      indicators = await Indicator.find(filter)
-        .populate('entreprise', 'identification.nomEntreprise nom name')
-        .sort({ createdAt: -1 });
-      console.log('Entreprise populated successfully');
+      // Ensuite populate avec gestion d'erreur pour chaque populate
+      const query = Indicator.find(filter).sort({ createdAt: -1 });
       
-      indicators = await Indicator.find(filter)
-        .populate('entreprise', 'identification.nomEntreprise nom name')
-        .populate('framework', 'name description')
-        .sort({ createdAt: -1 });
-      console.log('Framework populated successfully');
+      try {
+        query.populate('entreprise', 'identification.nomEntreprise nom name statut');
+      } catch (err) {
+        console.warn('Entreprise populate failed:', err.message);
+      }
       
-      indicators = await Indicator.find(filter)
-        .populate('entreprise', 'identification.nomEntreprise nom name')
-        .populate('framework', 'name description')
-        .populate('linkedKPIs', 'name nom code')
-        .sort({ createdAt: -1 });
-      console.log('LinkedKPIs populated successfully');
+      try {
+        query.populate('framework', 'name description type');
+      } catch (err) {
+        console.warn('Framework populate failed:', err.message);
+      }
+      
+      try {
+        query.populate('linkedKPIs', 'name nom code description');
+      } catch (err) {
+        console.warn('LinkedKPIs populate failed:', err.message);
+      }
+      
+      indicators = await query.lean();
+      console.log('All populates completed successfully');
       
     } catch (populateError) {
-      console.error('Populate error:', populateError.message);
+      console.error('❌ Populate error:', populateError.message);
+      console.error('Stack:', populateError.stack);
       // Si le populate échoue, retourner sans populate
-      indicators = await Indicator.find(filter).sort({ createdAt: -1 });
+      indicators = await Indicator.find(filter).sort({ createdAt: -1 }).lean();
     }
 
     console.log(`Returning ${indicators.length} indicators`);
@@ -101,9 +109,30 @@ exports.createIndicator = async (req, res) => {
     console.log('Creating indicator with data:', JSON.stringify(req.body, null, 2));
 
     const indicatorData = {
-      ...req.body,
-      createdBy: req.user?._id || '000000000000000000000000'
+      ...req.body
     };
+
+    // Transformer le code en uppercase si présent
+    if (indicatorData.code) {
+      indicatorData.code = indicatorData.code.toUpperCase().trim();
+    }
+
+    // Vérifier si req.user existe avant d'accéder à ses propriétés
+    if (req.user) {
+      indicatorData.createdBy = req.user._id || req.user.id || null;
+    }
+
+    // Vérifier que l'entreprise existe
+    if (indicatorData.entreprise) {
+      const enterpriseExists = await Entreprise.findById(indicatorData.entreprise);
+      if (!enterpriseExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'L\'entreprise spécifiée n\'existe pas',
+          error: 'INVALID_ENTERPRISE'
+        });
+      }
+    }
 
     // Nettoyer les champs vides
     if (!indicatorData.framework || indicatorData.framework === '') {
@@ -167,6 +196,26 @@ exports.createIndicator = async (req, res) => {
   } catch (error) {
     console.error('Error creating indicator:', error);
     console.error('Error details:', error.stack);
+    
+    // Gestion spéciale pour les codes dupliqués
+    if (error.code === 11000 && error.keyPattern?.code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Un indicateur avec ce code existe déjà',
+        error: 'CODE_DUPLICATE'
+      });
+    }
+    
+    // Gestion des erreurs de validation
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Erreur de validation des données',
+        error: error.message,
+        details: error.errors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de l\'indicateur',

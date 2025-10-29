@@ -1,0 +1,67 @@
+{
+  "enterprise_questions": [
+    {
+      "id": "ent_001",
+      "question": "Comment créer un nouveau KPI ?",
+      "answer": "Pour créer un nouveau KPI, allez dans la section 'KPIs' de votre tableau de bord, cliquez sur 'Ajouter un KPI', remplissez les informations requises (nom, description, type, valeur cible) et sauvegardez.",
+      "category": "kpi",
+      "keywords": ["kpi", "créer", "nouveau", "ajouter"],
+      "confidence": 0.9,
+      "handler": "kpi_creation"
+    },
+    {
+      "id": "ent_002", 
+      "question": "Comment consulter mes rapports ?",
+      "answer": "Vous pouvez consulter vos rapports dans la section 'Rapports' de votre tableau de bord. Les rapports sont organisés par période et type d'activité.",
+      "category": "rapports",
+      "keywords": ["rapports", "consulter", "voir", "historique"],
+      "confidence": 0.85,
+      "handler": "report_viewing"
+    },
+    {
+      "id": "ent_003",
+      "question": "Comment modifier mes informations d'entreprise ?",
+      "answer": "Pour modifier vos informations d'entreprise, allez dans 'Paramètres' > 'Profil Entreprise' et mettez à jour les champs nécessaires.",
+      "category": "profil",
+      "keywords": ["modifier", "profil", "entreprise", "informations"],
+      "confidence": 0.8,
+      "handler": "profile_update"
+    }
+  ],
+  "admin_questions": [
+    {
+      "id": "admin_001",
+      "question": "Comment gérer les utilisateurs ?",
+      "answer": "En tant qu'administrateur, vous pouvez gérer les utilisateurs depuis la section 'Utilisateurs' du tableau de bord admin. Vous pouvez créer, modifier, suspendre ou supprimer des comptes utilisateur.",
+      "category": "utilisateurs",
+      "keywords": ["utilisateurs", "gérer", "admin", "comptes"],
+      "confidence": 0.9,
+      "handler": "user_management"
+    },
+    {
+      "id": "admin_002",
+      "question": "Comment consulter les statistiques globales ?",
+      "answer": "Les statistiques globales sont disponibles dans la section 'Statistiques' du tableau de bord admin. Vous y trouverez des métriques sur l'utilisation, les entreprises actives et les performances du système.",
+      "category": "statistiques",
+      "keywords": ["statistiques", "globales", "métriques", "performance"],
+      "confidence": 0.85,
+      "handler": "global_stats"
+    },
+    {
+      "id": "admin_003",
+      "question": "Comment configurer le système ?",
+      "answer": "La configuration système se fait dans la section 'Configuration' du tableau de bord admin. Vous pouvez y modifier les paramètres généraux, les seuils d'alerte et les préférences du système.",
+      "category": "configuration",
+      "keywords": ["configuration", "système", "paramètres", "réglages"],
+      "confidence": 0.8,
+      "handler": "system_config"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "lastUpdated": "2024-01-01T00:00:00Z",
+    "totalQuestions": 6,
+    "enterpriseQuestions": 3,
+    "adminQuestions": 3
+  }
+}

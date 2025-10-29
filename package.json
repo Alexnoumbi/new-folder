@@ -8,6 +8,12 @@
     "start": "cd server && npm install && npm start",
     "dev": "concurrently \"cd frontend && npm start\" \"cd server && npm run dev\"",
     "install:all": "npm install && cd frontend && npm install && cd ../server && npm install",
+    "test": "node run-all-tests.js && node generate-test-reports.js",
+    "test:backend": "cd server && npm test -- --coverage && node ../generate-test-reports.js",
+    "test:frontend": "cd frontend && npm test -- --coverage && node ../generate-test-reports.js",
+    "test:e2e": "cd e2e && npx playwright test && node ../generate-test-reports.js",
+    "test:coverage": "node run-all-tests.js --coverage && node generate-test-reports.js",
+    "test:reports": "node generate-test-reports.js",
     "vercel-build": "cd frontend && npm install && npm run build"
   },
   "keywords": [
@@ -20,9 +26,21 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alexnoumbi/new-folder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Alexnoumbi/new-folder/issues"
+  },
+  "homepage": "https://github.com/Alexnoumbi/new-folder#readme"
 }

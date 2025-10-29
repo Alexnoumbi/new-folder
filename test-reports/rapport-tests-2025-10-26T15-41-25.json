@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-10-26T15:41:25.296Z",
+  "backend": {
+    "unit": {
+      "files": [
+        "server/tests/unit/models/User.test.js",
+        "server/tests/unit/models/Entreprise.test.js"
+      ],
+      "totalTests": 43,
+      "passedTests": 43,
+      "failedTests": 0,
+      "skippedTests": 1
+    },
+    "integration": {
+      "files": [
+        "server/tests/integration/auth/auth.register.test.js",
+        "server/tests/integration/auth/auth.login.test.js",
+        "server/tests/integration/entreprises/entreprise.crud.test.js"
+      ],
+      "totalTests": 44,
+      "passedTests": 8,
+      "failedTests": 36,
+      "skippedTests": 0
+    }
+  },
+  "frontend": {
+    "unit": {
+      "files": [
+        "frontend/src/tests/unit/components/Button.test.tsx",
+        "frontend/src/tests/unit/services/authService.test.ts",
+        "frontend/src/tests/unit/hooks/useAuth.test.ts"
+      ],
+      "totalTests": 17,
+      "passedTests": 17,
+      "failedTests": 0,
+      "skippedTests": 0
+    }
+  }
+}

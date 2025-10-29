@@ -147,7 +147,11 @@ exports.cancelVisit = async (req, res) => {
 
     visit.status = 'CANCELLED';
     visit.cancellationReason = reason;
-    visit.cancelledBy = req.user.id;
+    
+    // Vérifier si req.user existe avant d'accéder à ses propriétés
+    if (req.user) {
+      visit.cancelledBy = req.user._id || req.user.id || null;
+    }
     visit.cancelledAt = new Date();
 
     await visit.save();
@@ -211,8 +215,14 @@ exports.updateVisitStatus = async (req, res) => {
     }
 
     visit.status = status;
-    visit.statusComment = comment;
-    visit.lastUpdatedBy = req.user.id;
+    if (comment) {
+      visit.statusComment = comment;
+    }
+    
+    // Vérifier si req.user existe avant d'accéder à ses propriétés
+    if (req.user) {
+      visit.lastUpdatedBy = req.user._id || req.user.id || null;
+    }
     visit.lastUpdatedAt = new Date();
 
     await visit.save();
@@ -222,9 +232,11 @@ exports.updateVisitStatus = async (req, res) => {
       data: visit
     });
   } catch (error) {
+    console.error('❌ Error updating visit status:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise à jour du statut'
+      message: 'Erreur lors de la mise à jour du statut',
+      error: error.message
     });
   }
 };
@@ -363,8 +375,16 @@ exports.downloadReport = async (req, res) => {
 // @route   GET /api/visites/inspector/my-visits
 exports.getInspectorVisits = async (req, res) => {
   try {
+    // Vérifier si req.user existe
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utilisateur non authentifié'
+      });
+    }
+
     const visits = await Visit.find({
-      inspectorId: req.user.id,
+      inspectorId: req.user._id || req.user.id,
       status: { $nin: ['CANCELLED'] }
     })
     .populate('enterpriseId', 'nom')
@@ -375,9 +395,11 @@ exports.getInspectorVisits = async (req, res) => {
       data: visits
     });
   } catch (error) {
+    console.error('Error fetching inspector visits:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des visites'
+      message: 'Erreur lors de la récupération des visites',
+      error: error.message
     });
   }
 };

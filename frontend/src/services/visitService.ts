@@ -43,6 +43,18 @@ const visitService = {
     return response.data;
   },
 
+  updateVisitStatus: async (
+    visitId: string,
+    status: Visit['status'],
+    comment?: string
+  ): Promise<Visit> => {
+    const response = await api.put(`/visites/${visitId}/status`, {
+      status,
+      comment
+    });
+    return response.data;
+  },
+
   downloadVisitReport: async (visitId: string): Promise<Blob> => {
     const response = await api.get(`/visites/${visitId}/report/download`, {
       responseType: 'blob'

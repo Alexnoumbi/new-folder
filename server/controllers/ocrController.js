@@ -13,8 +13,10 @@ exports.extractText = async (req, res) => {
             });
         }
 
-        // Vérifier l'entrepriseId
-        if (!req.body.entrepriseId) {
+        // Récupérer l'entrepriseId depuis le body ou req.user
+        const entrepriseId = req.body.entrepriseId || req.user?.entrepriseId;
+        
+        if (!entrepriseId) {
             if (fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path);
             }
@@ -75,8 +77,8 @@ exports.extractText = async (req, res) => {
             confidence: result.data.confidence || 0,
             wordsCount: result.data.words?.length || 0,
             language: 'french', // MongoDB text index nécessite 'french' pas 'fra'
-            entrepriseId: req.body.entrepriseId,
-            createdBy: req.user?._id || '000000000000000000000000',
+            entrepriseId: entrepriseId,
+            createdBy: req.user?._id || req.user?.id || null,
             status: 'PROCESSED'
         });
 

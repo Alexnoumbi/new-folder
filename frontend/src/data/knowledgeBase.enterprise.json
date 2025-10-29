@@ -1,0 +1,78 @@
+[
+  {
+    "id": 1,
+    "question": "Bonjour",
+    "answer": "Bonjour ! Je suis votre assistant IA pour entreprise sur TrackImpact. Je peux vous aider avec vos KPIs, indicateurs de performance, soumissions de formulaires, calendrier des visites, statut de conformité et rapports. Que souhaitez-vous savoir ?"
+  },
+  {
+    "id": 2,
+    "question": "Quels sont vos horaires d'ouverture ?",
+    "answer": "La plateforme TrackImpact est accessible 24/7 pour consulter vos données. Pour le support client, nous sommes disponibles du lundi au vendredi de 9h à 18h."
+  },
+  {
+    "id": 3,
+    "question": "Comment puis-je vous contacter ?",
+    "answer": "Vous pouvez nous contacter par email à support@trackimpact.com ou appelez le +237 XXX XXX XXX pour une assistance directe."
+  },
+  {
+    "id": 4,
+    "question": "Quels modes de paiement acceptez-vous ?",
+    "answer": "Nous acceptons les paiements par carte bancaire, mobile money (MTN, Orange), et virements bancaires. Tous les paiements sont sécurisés via notre système de paiement intégré."
+  },
+  {
+    "id": 5,
+    "question": "Où êtes-vous situés ?",
+    "answer": "Notre bureau principal est situé à Yaoundé, quartier Bastos. Nous couvrons l'ensemble du territoire camerounais avec des visites de terrain régulières."
+  },
+  {
+    "id": 6,
+    "question": "Quels sont mes indicateurs de performance ?",
+    "answer": "Vos indicateurs de performance incluent : Effectifs actuels, Chiffre d'affaires, Situation de trésorerie, Statut de conformité, Atteinte des cibles d'investissement, Atteinte des cibles emploi, Respect des délais de reporting. Consultez votre dashboard pour les détails."
+  },
+  {
+    "id": 7,
+    "question": "Comment soumettre un formulaire ?",
+    "answer": "Pour soumettre un formulaire : 1) Allez dans 'Mes Formulaires', 2) Sélectionnez le formulaire à remplir, 3) Remplissez tous les champs obligatoires, 4) Vérifiez vos données, 5) Cliquez sur 'Soumettre'. Vous recevrez une confirmation par email."
+  },
+  {
+    "id": 8,
+    "question": "Quand sont les prochaines visites planifiées ?",
+    "answer": "Le calendrier des visites est disponible dans votre dashboard. Les visites sont planifiées par l'administrateur et vous recevrez une notification par email 48h avant chaque visite. Consultez la section 'Calendrier des Visites' pour plus de détails."
+  },
+  {
+    "id": 9,
+    "question": "Quel est mon statut de conformité ?",
+    "answer": "Votre statut de conformité est affiché dans le dashboard avec un badge coloré. Statut possible : 'Conforme' (vert), 'En cours de vérification' (orange), ou 'Non conforme' (rouge). Consultez les détails dans la section 'Conformité'."
+  },
+  {
+    "id": 10,
+    "question": "Comment consulter l'historique de mes révisions ?",
+    "answer": "L'historique de vos révisions est disponible dans la section 'Historique des Révisions' du dashboard. Vous pouvez voir toutes les snapshots enregistrées lors des visites, avec dates et commentaires."
+  },
+  {
+    "id": 11,
+    "question": "Comment voir l'évolution de mon personnel ?",
+    "answer": "L'évolution de votre personnel est visualisée dans le graphique 'Évolution du Personnel' de votre dashboard. Vous pouvez voir l'historique des effectifs et des créations d'emplois au fil du temps."
+  },
+  {
+    "id": 12,
+    "question": "Comment consulter mes sources de financement ?",
+    "answer": "Vos sources de financement sont affichées dans le graphique en camembert 'Sources de Financement' de votre dashboard. Vous pouvez voir la répartition de vos financements (propres, prêts, subventions, etc.)."
+  },
+  {
+    "id": 13,
+    "question": "Comment améliorer mes KPIs ?",
+    "answer": "Pour améliorer vos KPIs : 1) Consultez votre rapport de performance, 2) Identifiez les domaines à améliorer, 3) Suivez les recommandations de l'administrateur, 4) Soumettez régulièrement vos mises à jour, 5) Consultez les ressources de formation disponibles."
+  },
+  {
+    "id": 14,
+    "question": "Comment générer un rapport de performance ?",
+    "answer": "Pour générer un rapport : 1) Allez dans 'Mes Rapports', 2) Sélectionnez le type de rapport souhaité, 3) Cliquez sur 'Générer', 4) Téléchargez au format PDF ou Excel. Les rapports incluent vos KPIs, évolution et comparaisons."
+  },
+  {
+    "id": 15,
+    "question": "Quels sont les objectifs à atteindre pour la conformité ?",
+    "answer": "Vos objectifs de conformité incluent : Atteinte des cibles d'investissement (variable par convention), Atteinte des cibles emploi (variable par convention), Respect des délais de reporting. Consultez votre section 'Performance des Conventions' pour vos objectifs spécifiques."
+  }
+]
+

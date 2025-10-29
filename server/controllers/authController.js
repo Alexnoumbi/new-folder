@@ -41,6 +41,9 @@ const register = async (req, res) => {
         contact: {
           email
         },
+        investissementEmploi: {
+          effectifsEmployes: 0
+        },
         statut: 'En attente',
         description: ''
       });

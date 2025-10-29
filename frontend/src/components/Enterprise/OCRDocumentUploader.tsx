@@ -72,7 +72,7 @@ const OCRDocumentUploader: React.FC<OCRDocumentUploaderProps> = ({ onUploadCompl
 
     try {
       // Extract text using OCR
-      const result = await ocrService.extractText(selectedFile);
+      const result = await ocrService.extractText(selectedFile, user.entrepriseId);
       
       setOcrResult(result);
       setEditedText(result.text || '');
