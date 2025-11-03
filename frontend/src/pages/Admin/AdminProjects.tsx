@@ -93,7 +93,7 @@ const AdminProjects: React.FC = () => {
       const token = localStorage.getItem('token');
       
       // Récupérer les entreprises agréées (avec statut AGREE ou VALIDE)
-      const response = await axios.get('http://localhost:5000/api/entreprises', {
+      const response = await axios.get('/api/entreprises', {
         headers: { Authorization: `Bearer ${token}` }
       });
       

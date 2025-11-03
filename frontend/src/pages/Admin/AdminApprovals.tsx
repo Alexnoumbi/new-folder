@@ -61,7 +61,7 @@ const AdminApprovals: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/collaboration/approvals', {
+      const response = await axios.get('/api/collaboration/approvals', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setApprovals(response.data.data || response.data || []);
@@ -79,7 +79,7 @@ const AdminApprovals: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/collaboration/approvals/${id}/approve`,
+        `/api/collaboration/approvals/${id}/approve`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -93,7 +93,7 @@ const AdminApprovals: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/collaboration/approvals/${id}/reject`,
+        `/api/collaboration/approvals/${id}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

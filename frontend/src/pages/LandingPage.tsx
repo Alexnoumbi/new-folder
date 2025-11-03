@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
         formDataToSend.append('documents', file);
       });
 
-      await axios.post('http://localhost:5000/api/public/submission-requests', formDataToSend, {
+      await axios.post('/api/public/submission-requests', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

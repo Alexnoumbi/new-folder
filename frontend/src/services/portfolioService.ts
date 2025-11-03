@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/portfolios';
+const API_URL = '/api/portfolios';
 
 // Types
 export interface Portfolio {

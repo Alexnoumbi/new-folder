@@ -100,7 +100,7 @@ const AdminOCR: React.FC = () => {
 
   const fetchEntreprises = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/entreprises');
+      const response = await axios.get('/api/entreprises');
       setEntreprises(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching entreprises:', err);
@@ -110,7 +110,7 @@ const AdminOCR: React.FC = () => {
   const fetchResults = async () => {
     try {
       setLoadingResults(true);
-      const response = await axios.get('http://localhost:5000/api/ocr/results');
+      const response = await axios.get('/api/ocr/results');
       setResults(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching OCR results:', err);
@@ -154,7 +154,7 @@ const AdminOCR: React.FC = () => {
       formData.append('file', selectedFile);
       formData.append('entrepriseId', selectedEntreprise);
 
-      const response = await axios.post('http://localhost:5000/api/ocr/upload', formData, {
+      const response = await axios.post('/api/ocr/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -204,7 +204,7 @@ const AdminOCR: React.FC = () => {
     if (!selectedResult) return;
 
     try {
-      await axios.put(`http://localhost:5000/api/ocr/results/${selectedResult._id}`, {
+      await axios.put(`/api/ocr/results/${selectedResult._id}`, {
         textContent: editedText
       });
 
@@ -224,7 +224,7 @@ const AdminOCR: React.FC = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce résultat OCR?')) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/ocr/results/${id}`);
+      await axios.delete(`/api/ocr/results/${id}`);
       fetchResults();
       setSnackbar({ open: true, message: 'Résultat supprimé avec succès', severity: 'success' });
     } catch (err: any) {

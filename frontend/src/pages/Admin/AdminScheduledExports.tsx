@@ -95,7 +95,7 @@ const AdminScheduledExports: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/enhanced-reports/scheduled', {
+      const response = await axios.get('/api/enhanced-reports/scheduled', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExports(response.data.data || response.data || []);
@@ -113,7 +113,7 @@ const AdminScheduledExports: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/api/enhanced-reports/scheduled/${id}`,
+        `/api/enhanced-reports/scheduled/${id}`,
         { isActive: !isActive },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -180,14 +180,14 @@ const AdminScheduledExports: React.FC = () => {
 
       if (editingExport) {
         await axios.put(
-          `http://localhost:5000/api/enhanced-reports/scheduled/${editingExport._id}`,
+          `/api/enhanced-reports/scheduled/${editingExport._id}`,
           dataToSend,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setSnackbar({ open: true, message: 'Export modifié avec succès', severity: 'success' });
       } else {
         await axios.post(
-          'http://localhost:5000/api/enhanced-reports/scheduled',
+          '/api/enhanced-reports/scheduled',
           dataToSend,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -209,7 +209,7 @@ const AdminScheduledExports: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `http://localhost:5000/api/enhanced-reports/scheduled/${id}`,
+        `/api/enhanced-reports/scheduled/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSnackbar({ open: true, message: 'Export supprimé avec succès', severity: 'success' });
@@ -223,7 +223,7 @@ const AdminScheduledExports: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/enhanced-reports/scheduled/${id}/run`,
+        `/api/enhanced-reports/scheduled/${id}/run`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

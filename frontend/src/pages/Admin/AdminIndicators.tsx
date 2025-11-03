@@ -150,7 +150,7 @@ const AdminIndicators: React.FC = () => {
 
   const fetchKPIs = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/kpis');
+      const response = await axios.get('/api/kpis');
       setKPIs(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching KPIs:', err);
@@ -159,7 +159,7 @@ const AdminIndicators: React.FC = () => {
 
   const fetchEntreprises = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/entreprises');
+      const response = await axios.get('/api/entreprises');
       setEntreprises(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching entreprises:', err);
@@ -168,7 +168,7 @@ const AdminIndicators: React.FC = () => {
 
   const fetchFrameworks = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/results-framework');
+      const response = await axios.get('/api/results-framework');
       setFrameworks(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching frameworks:', err);

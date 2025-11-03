@@ -86,7 +86,7 @@ const AdminSubmissions: React.FC = () => {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/form-builder/submissions');
+      const response = await axios.get('/api/form-builder/submissions');
       setSubmissions(response.data.data || response.data || []);
       setError('');
     } catch (err: any) {
@@ -101,7 +101,7 @@ const AdminSubmissions: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/form-builder/submissions/${id}/approve`,
+        `/api/form-builder/submissions/${id}/approve`,
         { comment: 'Approuvé depuis AdminSubmissions' }
       );
       fetchSubmissions();
@@ -117,7 +117,7 @@ const AdminSubmissions: React.FC = () => {
     
     try {
       await axios.put(
-        `http://localhost:5000/api/form-builder/submissions/${id}/reject`,
+        `/api/form-builder/submissions/${id}/reject`,
         { reason }
       );
       fetchSubmissions();

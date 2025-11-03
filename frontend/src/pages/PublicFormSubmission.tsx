@@ -73,7 +73,7 @@ const PublicFormSubmission: React.FC = () => {
   const fetchForm = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/form-builder/${formId}`);
+      const response = await axios.get(`/api/form-builder/${formId}`);
       
       if (response.data.success) {
         setForm(response.data.data);
@@ -138,7 +138,7 @@ const PublicFormSubmission: React.FC = () => {
       // Ne pas inclure location si pas de coordonnées
       // La géolocalisation sera ajoutée plus tard si nécessaire
 
-      const response = await axios.post(`http://localhost:5000/api/form-builder/${formId}/submit-public`, submitData);
+      const response = await axios.post(`/api/form-builder/${formId}/submit-public`, submitData);
 
       if (response.data.success) {
         setSuccess(true);

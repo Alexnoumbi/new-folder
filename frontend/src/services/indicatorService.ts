@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/indicators';
+const API_URL = '/api/indicators';
 
 export interface Indicator {
   _id: string;

@@ -202,7 +202,7 @@ const AdminPortfolio: React.FC = () => {
 
   const fetchEntreprises = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/entreprises');
+      const response = await axios.get('/api/entreprises');
       setEntreprises(response.data.data || response.data || []);
     } catch (err) {
       console.error('Error fetching entreprises:', err);

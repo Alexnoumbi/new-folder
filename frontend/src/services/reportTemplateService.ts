@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ReportTemplate, CreateTemplateData } from '../types/reportTemplate.types';
 
-const BASE_URL = 'http://localhost:5000/api/enhanced-reports';
+const BASE_URL = '/api/enhanced-reports';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

@@ -7,7 +7,7 @@ const AuthDebug: React.FC = () => {
 
   const testAuth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Content-Type': 'application/json'
         }

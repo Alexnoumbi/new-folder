@@ -122,7 +122,7 @@ const AdminResultsFramework: React.FC = () => {
 
   const loadEntreprises = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/entreprises');
+      const response = await axios.get('/api/entreprises');
       setEntreprises(response.data.data || response.data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des entreprises:', error);

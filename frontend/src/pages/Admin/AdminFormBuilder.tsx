@@ -119,7 +119,7 @@ const AdminFormBuilder: React.FC = () => {
   const fetchForms = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/form-builder');
+      const response = await axios.get('/api/form-builder');
       
       setForms(response.data.data || response.data || []);
       setError('');
@@ -135,8 +135,8 @@ const AdminFormBuilder: React.FC = () => {
   const fetchSubmissions = async (formId?: string) => {
     try {
       const url = formId 
-        ? `http://localhost:5000/api/form-builder/${formId}/submissions`
-        : 'http://localhost:5000/api/form-builder/submissions';
+        ? `/api/form-builder/${formId}/submissions`
+        : '/api/form-builder/submissions';
       
       const response = await axios.get(url);
       setSubmissions(response.data.data || response.data || []);
@@ -191,9 +191,9 @@ const AdminFormBuilder: React.FC = () => {
       };
 
       if (selectedForm) {
-        await axios.put(`http://localhost:5000/api/form-builder/${selectedForm._id}`, formData);
+        await axios.put(`/api/form-builder/${selectedForm._id}`, formData);
       } else {
-        await axios.post('http://localhost:5000/api/form-builder', formData);
+        await axios.post('/api/form-builder', formData);
       }
 
       setOpenDialog(false);
@@ -208,7 +208,7 @@ const AdminFormBuilder: React.FC = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce formulaire ?')) return;
     
     try {
-      await axios.delete(`http://localhost:5000/api/form-builder/${id}`);
+      await axios.delete(`/api/form-builder/${id}`);
       fetchForms();
     } catch (err: any) {
       console.error('Error deleting form:', err);
@@ -224,7 +224,7 @@ const AdminFormBuilder: React.FC = () => {
 
   const handleApproveSubmission = async (submissionId: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/form-builder/submissions/${submissionId}/approve`, {
+      await axios.put(`/api/form-builder/submissions/${submissionId}/approve`, {
         comment: 'Approuvé'
       });
       if (selectedFormForView) {
@@ -240,7 +240,7 @@ const AdminFormBuilder: React.FC = () => {
     if (!reason) return;
     
     try {
-      await axios.put(`http://localhost:5000/api/form-builder/submissions/${submissionId}/reject`, {
+      await axios.put(`/api/form-builder/submissions/${submissionId}/reject`, {
         reason
       });
       if (selectedFormForView) {

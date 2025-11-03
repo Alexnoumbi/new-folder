@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/results-framework';
+const API_URL = '/api/results-framework';
 
 export interface ResultsFramework {
   _id: string;
