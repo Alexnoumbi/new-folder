@@ -43,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { getImageUrl } from '../../utils/imageUtils';
 import { getEntreprise } from '../../services/entrepriseService';
 
 const DRAWER_WIDTH = 280;
@@ -338,7 +339,7 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
               }}
             >
               <Avatar
-                src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
+                src={getImageUrl(entreprise?.logo)}
                 sx={{
                   width: 40,
                   height: 40,
@@ -382,7 +383,7 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
               </Box>
               <MenuItem onClick={() => { handleClose(); navigate('/enterprise/profile'); }}>
                 <Avatar 
-                  src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
+                  src={getImageUrl(entreprise?.logo)}
                   sx={{ width: 24, height: 24, mr: 2, bgcolor: theme.palette.primary.main }}
                 >
                   {!entreprise?.logo && (entreprise?.identification?.nomEntreprise?.charAt(0) || 'E')}

@@ -45,6 +45,7 @@ import {
 import { getUserById, updateUser } from '../../services/userService';
 import { getEntreprise, updateEntreprise, uploadLogo } from '../../services/entrepriseService';
 import { useAuth } from '../../hooks/useAuth';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -236,7 +237,7 @@ const ProfilePage: React.FC = () => {
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'center', md: 'flex-start' }}>
                     <Box sx={{ position: 'relative' }}>
                         <Avatar
-                            src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
+                            src={getImageUrl(entreprise?.logo)}
                             sx={{
                                 width: 100,
                                 height: 100,
