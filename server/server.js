@@ -8,8 +8,28 @@ require('dotenv').config();
 const app = express();
 
 // Configuration CORS avec x-user-email
+// Support de plusieurs origines pour la production
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Vérifier si l'origine est autorisée
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.includes(allowed))) {
+      callback(null, true);
+    } else {
+      // En développement, autoriser localhost
+      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -87,7 +107,85 @@ app.use('/api/advanced-assistant', routes.advancedAssistant);
 app.use('/api/enhanced-assistant', routes.enhancedAssistant);
 
 // Servir les fichiers uploadés
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsPath = path.join(__dirname, 'uploads');
+// S'assurer que le dossier existe
+const fs = require('fs');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+  console.log('✅ Dossier uploads créé');
+}
+
+// Route dédiée pour servir les fichiers via /api/uploads
+app.get('/api/uploads/:filename', (req, res) => {
+  // Récupérer le nom du fichier
+  const filename = req.params.filename;
+  const filePath = path.join(uploadsPath, filename);
+  
+  console.log('📥 Requête pour fichier:', filename);
+  console.log('📁 Chemin complet:', filePath);
+  
+  // Sécurité : empêcher l'accès aux fichiers en dehors du dossier uploads
+  const normalizedPath = path.normalize(filePath);
+  const normalizedUploadsPath = path.normalize(uploadsPath);
+  if (!normalizedPath.startsWith(normalizedUploadsPath)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Accès non autorisé'
+    });
+  }
+  
+  // Vérifier que le fichier existe
+  if (!fs.existsSync(filePath)) {
+    console.log('❌ Fichier non trouvé:', filePath);
+    return res.status(404).json({
+      success: false,
+      message: 'Fichier non trouvé',
+      path: filePath
+    });
+  }
+  
+  // Envoyer le fichier avec les bons headers
+  res.sendFile(filePath, {
+    headers: {
+      'Content-Type': getContentType(filePath)
+    }
+  }, (err) => {
+    if (err) {
+      console.error('Erreur lors de l\'envoi du fichier:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Erreur lors de l\'envoi du fichier'
+        });
+      }
+    } else {
+      console.log('✅ Fichier servi:', filename);
+    }
+  });
+});
+
+// Fonction helper pour déterminer le Content-Type
+function getContentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const contentTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain'
+  };
+  return contentTypes[ext] || 'application/octet-stream';
+}
+
+// Route directe pour rétrocompatibilité
+app.use('/uploads', express.static(uploadsPath));
+
+console.log('📁 Fichiers statiques servis depuis:', uploadsPath);
+console.log('🌐 Route /api/uploads/:filename accessible');
+console.log('🌐 Route /uploads accessible (rétrocompatibilité)');
 
 // Connexion à MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -109,5 +207,6 @@ mongoose.connect(process.env.MONGODB_URI)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-  console.log(`🌐 CORS configuré pour: localhost`);
+  console.log(`🌐 CORS configuré pour: ${allowedOrigins.join(', ')}`);
+  console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
 });
