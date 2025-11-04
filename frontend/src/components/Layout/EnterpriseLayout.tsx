@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   AppBar,
@@ -43,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { getEntreprise } from '../../services/entrepriseService';
 
 const DRAWER_WIDTH = 280;
 
@@ -110,6 +111,27 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [entreprise, setEntreprise] = useState<any | null>(null);
+  const [loadingEntreprise, setLoadingEntreprise] = useState(true);
+
+  // Charger les données de l'entreprise
+  useEffect(() => {
+    const loadEntreprise = async () => {
+      if (user?.entrepriseId) {
+        try {
+          setLoadingEntreprise(true);
+          const entrepriseData = await getEntreprise(user.entrepriseId);
+          setEntreprise(entrepriseData);
+        } catch (error) {
+          console.error('Erreur lors du chargement de l\'entreprise:', error);
+        } finally {
+          setLoadingEntreprise(false);
+        }
+      }
+    };
+
+    loadEntreprise();
+  }, [user?.entrepriseId]);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -316,21 +338,24 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
               }}
             >
               <Avatar
+                src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
                 sx={{
                   width: 40,
                   height: 40,
                   bgcolor: theme.palette.success.main,
-                  fontWeight: 700
+                  fontWeight: 700,
+                  border: '2px solid white',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}
               >
-                {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
+                {!entreprise?.logo && (entreprise?.identification?.nomEntreprise?.charAt(0) || user?.prenom?.charAt(0) || 'E')}
               </Avatar>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-                  {user?.prenom} {user?.nom}
+                  {entreprise?.identification?.nomEntreprise || 'Mon Entreprise'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Entreprise
+                  {user?.prenom} {user?.nom}
                 </Typography>
               </Box>
             </Box>
@@ -349,14 +374,19 @@ const EnterpriseLayout: React.FC<EnterpriseLayoutProps> = ({ children }) => {
             >
               <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
                 <Typography variant="subtitle2" fontWeight={600}>
-                  {user?.prenom} {user?.nom}
+                  {entreprise?.identification?.nomEntreprise || 'Mon Entreprise'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {user?.email}
                 </Typography>
               </Box>
               <MenuItem onClick={() => { handleClose(); navigate('/enterprise/profile'); }}>
-                <Avatar sx={{ width: 24, height: 24, mr: 2 }} />
+                <Avatar 
+                  src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
+                  sx={{ width: 24, height: 24, mr: 2, bgcolor: theme.palette.primary.main }}
+                >
+                  {!entreprise?.logo && (entreprise?.identification?.nomEntreprise?.charAt(0) || 'E')}
+                </Avatar>
                 Mon profil
               </MenuItem>
               <MenuItem onClick={() => { handleClose(); navigate('/enterprise/settings'); }}>

@@ -1,39 +1,39 @@
 import { createTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
-// Palette de couleurs moderne inspirée de TolaData
+// Palette de couleurs inspirée du logo API (Agence de Promotion des Investissements Cameroun)
 const colors = {
   primary: {
-    main: '#3b82f6', // Blue 500
-    light: '#60a5fa', // Blue 400
-    dark: '#1d4ed8', // Blue 700
+    main: '#1A3B8A', // Bleu principal du logo API
+    light: '#4A6BC7', // Bleu clair
+    dark: '#0F2558', // Bleu foncé
     contrastText: '#ffffff',
   },
   secondary: {
-    main: '#8b5cf6', // Violet 500
-    light: '#a78bfa', // Violet 400
-    dark: '#6d28d9', // Violet 700
+    main: '#007A5E', // Vert du drapeau camerounais
+    light: '#00A87A', // Vert clair
+    dark: '#005A45', // Vert foncé
     contrastText: '#ffffff',
   },
   success: {
-    main: '#10b981', // Green 500
-    light: '#34d399', // Green 400
-    dark: '#059669', // Green 600
+    main: '#007A5E', // Vert du drapeau
+    light: '#34D399', // Vert clair
+    dark: '#005A45', // Vert foncé
   },
   warning: {
-    main: '#f59e0b', // Amber 500
-    light: '#fbbf24', // Amber 400
-    dark: '#d97706', // Amber 600
+    main: '#FCD116', // Jaune du drapeau camerounais
+    light: '#FFE066', // Jaune clair
+    dark: '#D4B300', // Jaune foncé
   },
   error: {
-    main: '#ef4444', // Red 500
-    light: '#f87171', // Red 400
-    dark: '#dc2626', // Red 600
+    main: '#CE1126', // Rouge du drapeau camerounais
+    light: '#F87171', // Rouge clair
+    dark: '#9A0026', // Rouge foncé
   },
   info: {
-    main: '#06b6d4', // Cyan 500
-    light: '#22d3ee', // Cyan 400
-    dark: '#0891b2', // Cyan 600
+    main: '#1A3B8A', // Bleu principal API
+    light: '#4A6BC7', // Bleu clair
+    dark: '#0F2558', // Bleu foncé
   },
   grey: {
     50: '#f9fafb',
@@ -171,7 +171,7 @@ const modernTheme = createTheme({
         },
         contained: {
           '&:hover': {
-            boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.3)',
+            boxShadow: '0px 4px 12px rgba(26, 59, 138, 0.3)',
           },
         },
         sizeLarge: {

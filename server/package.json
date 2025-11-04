@@ -19,6 +19,7 @@
     "migrate:verify": "node migration_add_type_compte.js verify",
     "migrate:cleanup": "node migration_add_type_compte.js cleanup",
     "post-migrate": "node post_migration.js",
+    "import:csv": "node scripts/import-entreprises-csv.js",
     "vercel-build": "echo 'No build step required for server'"
   },
   "keywords": [

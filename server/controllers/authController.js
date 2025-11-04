@@ -24,7 +24,7 @@ const register = async (req, res) => {
 
     // Si compte entreprise, créer une fiche Entreprise minimale (valeurs par défaut conformes au schéma)
     if (typeCompte === 'entreprise') {
-      const tmpNumero = `TMP-${Date.now()}`;
+      const tmpNumero = `TMP${Date.now()}`;
       const entreprise = await Entreprise.create({
         identification: {
           nomEntreprise: `${prenom || ''} ${nom || ''}`.trim() || email.split('@')[0],
@@ -94,7 +94,8 @@ const register = async (req, res) => {
     console.error('Erreur lors de l\'inscription:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de l\'inscription'
+      message: error.message || 'Erreur lors de l\'inscription',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

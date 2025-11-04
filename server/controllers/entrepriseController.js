@@ -10,6 +10,8 @@ const Report = require('../models/Report');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 const { logAudit } = require('../utils/auditLogger');
+const fs = require('fs');
+const path = require('path');
 
 // @desc    Obtenir toutes les entreprises
 // @route   GET /api/entreprises
@@ -1100,6 +1102,182 @@ const getEntrepriseActivityLog = async (req, res) => {
   }
 };
 
+// @desc    Uploader le logo de l'entreprise
+// @route   POST /api/entreprises/logo
+// @access  Private (Entreprise uniquement)
+const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier fourni'
+      });
+    }
+
+    // Vérifier que l'utilisateur est associé à une entreprise
+    const email = req.headers['x-user-email'] || req.user?.email;
+    if (!email) {
+      // Supprimer le fichier uploadé si l'authentification échoue
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Email utilisateur requis'
+      });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Supprimer le fichier uploadé
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+
+    const entrepriseId = user.entrepriseId || user.entreprise;
+    if (!entrepriseId) {
+      // Supprimer le fichier uploadé
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Aucune entreprise associée à cet utilisateur'
+      });
+    }
+
+    const entreprise = await Entreprise.findById(entrepriseId);
+    if (!entreprise) {
+      // Supprimer le fichier uploadé
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(404).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+
+    // Vérifier le type de fichier (images uniquement)
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      // Supprimer le fichier uploadé
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Type de fichier non autorisé. Seules les images sont acceptées.'
+      });
+    }
+
+    // Vérifier la taille du fichier (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (req.file.size > maxSize) {
+      // Supprimer le fichier uploadé
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Erreur lors de la suppression du fichier:', err);
+        }
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Fichier trop volumineux. Taille maximum: 5MB'
+      });
+    }
+
+    // Supprimer l'ancien logo s'il existe
+    if (entreprise.logo) {
+      const oldLogoPath = path.join(__dirname, '..', 'uploads', path.basename(entreprise.logo));
+      try {
+        if (fs.existsSync(oldLogoPath)) {
+          fs.unlinkSync(oldLogoPath);
+        }
+      } catch (err) {
+        console.error('Erreur lors de la suppression de l\'ancien logo:', err);
+      }
+    }
+
+    // Construire l'URL du nouveau logo
+    const logoUrl = `/uploads/${req.file.filename}`;
+
+    // Sauvegarder l'ancien logo pour le log
+    const oldLogo = entreprise.logo;
+
+    // Mettre à jour l'entreprise avec le nouveau logo
+    entreprise.logo = logoUrl;
+    entreprise.dateModification = new Date();
+    await entreprise.save();
+
+    // Logger l'action
+
+    await logAudit({
+      action: 'UPLOAD_LOGO',
+      entityType: 'Entreprise',
+      entityId: entrepriseId,
+      userId: user._id,
+      details: {
+        oldLogo: oldLogo,
+        newLogo: logoUrl
+      }
+    });
+
+    // Recharger l'entreprise depuis la base pour s'assurer d'avoir les données à jour
+    const updatedEntreprise = await Entreprise.findById(entrepriseId);
+    
+    res.json({
+      success: true,
+      message: 'Logo mis à jour avec succès',
+      data: {
+        logo: logoUrl,
+        entreprise: updatedEntreprise
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'upload du logo:', error);
+    // Supprimer le fichier uploadé en cas d'erreur
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Erreur lors de la suppression du fichier:', err);
+      }
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'upload du logo',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getEntreprises,
   getEntreprise,
@@ -1123,5 +1301,6 @@ module.exports = {
   updateEntrepriseConformite,
   getEntrepriseEvolutionData,
   getEntrepriseSnapshots,
-  getEntrepriseActivityLog
+  getEntrepriseActivityLog,
+  uploadLogo
 };

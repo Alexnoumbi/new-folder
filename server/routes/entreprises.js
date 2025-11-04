@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { protect } = require('../middleware/auth');
 const {
   getEntreprises,
@@ -24,8 +25,35 @@ const {
   updateEntrepriseConformite,
   getEntrepriseEvolutionData,
   getEntrepriseSnapshots,
-  getEntrepriseActivityLog
+  getEntrepriseActivityLog,
+  uploadLogo
 } = require('../controllers/entrepriseController');
+
+// Configuration de multer pour les logos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `logo-${uniqueSuffix}-${file.originalname}`);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non autorisé. Seules les images sont acceptées.'), false);
+    }
+  }
+});
 
 // Routes publiques et générales
 router.get('/', getEntreprises);
@@ -44,6 +72,7 @@ router.patch('/:id/conformite', updateEntrepriseConformite);
 router.get('/stats', protect, getEntrepriseStats);
 router.get('/me', protect, getEntrepriseInfo);
 router.put('/profile', protect, updateEntrepriseProfile);
+router.post('/logo', protect, upload.single('logo'), uploadLogo);
 
 // Détail et mise à jour d'une entreprise (protégées)
 router.get('/:id', protect, getEntreprise);

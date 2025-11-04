@@ -55,6 +55,7 @@ export interface Entreprise {
   dateCreation?: Date;
   dateModification?: Date;
   description?: string;
+  logo?: string;
   createdAt?: string;
   updatedAt?: string;
   
@@ -247,6 +248,25 @@ export const getEntrepriseSnapshots = async (id: string): Promise<any[]> => {
     return response.data.data || [];
   } catch (error) {
     console.error('Error fetching snapshots:', error);
+    throw error;
+  }
+};
+
+// Uploader le logo de l'entreprise
+export const uploadLogo = async (file: File): Promise<{ logo: string; entreprise: Entreprise }> => {
+  try {
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    const response = await api.post('/entreprises/logo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error uploading logo:', error);
     throw error;
   }
 };

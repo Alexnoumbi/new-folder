@@ -251,7 +251,7 @@ describe('Auth Registration Integration Tests', () => {
       const user = await User.findOne({ email: userData.email });
       const entreprise = await Entreprise.findById(user.entrepriseId);
 
-      expect(entreprise.identification.numeroContribuable).toMatch(/^TMP-\d+$/);
+      expect(entreprise.identification.numeroContribuable).toMatch(/^TMP\d+$/);
     });
 
     it('should handle registration with special characters in names', async () => {

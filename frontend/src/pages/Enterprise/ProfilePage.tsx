@@ -39,10 +39,11 @@ import {
     Email,
     Language as WebIcon,
     CheckCircle,
-    Info
+    Info,
+    PhotoCamera
 } from '@mui/icons-material';
 import { getUserById, updateUser } from '../../services/userService';
-import { getEntreprise, updateEntreprise } from '../../services/entrepriseService';
+import { getEntreprise, updateEntreprise, uploadLogo } from '../../services/entrepriseService';
 import { useAuth } from '../../hooks/useAuth';
 
 interface TabPanelProps {
@@ -70,6 +71,7 @@ const ProfilePage: React.FC = () => {
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [tabValue, setTabValue] = useState(0);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     const fetchData = useCallback(async () => {
         if (!currentUser?.id) return;
@@ -232,19 +234,92 @@ const ProfilePage: React.FC = () => {
                 }}
             >
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'center', md: 'flex-start' }}>
-                    <Avatar
-                        sx={{
-                            width: 100,
-                            height: 100,
-                            bgcolor: 'white',
-                            color: theme.palette.primary.main,
-                            fontSize: '2.5rem',
-                            fontWeight: 800,
-                            boxShadow: `0 8px 24px ${alpha('#000', 0.3)}`
-                        }}
-                    >
-                        {companyName.charAt(0)}
-                    </Avatar>
+                    <Box sx={{ position: 'relative' }}>
+                        <Avatar
+                            src={entreprise?.logo ? (entreprise.logo.startsWith('http') ? entreprise.logo : (entreprise.logo.startsWith('/') ? `http://localhost:5000${entreprise.logo}` : `http://localhost:5000/${entreprise.logo}`)) : undefined}
+                            sx={{
+                                width: 100,
+                                height: 100,
+                                bgcolor: 'white',
+                                color: theme.palette.primary.main,
+                                fontSize: '2.5rem',
+                                fontWeight: 800,
+                                boxShadow: `0 8px 24px ${alpha('#000', 0.3)}`,
+                                border: '3px solid white'
+                            }}
+                        >
+                            {!entreprise?.logo && companyName.charAt(0)}
+                        </Avatar>
+                        <input
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            id="logo-upload"
+                            type="file"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+
+                                // Vérifier la taille (max 5MB)
+                                if (file.size > 5 * 1024 * 1024) {
+                                    setError('Le fichier est trop volumineux. Taille maximum: 5MB');
+                                    return;
+                                }
+
+                                // Vérifier le type
+                                if (!file.type.startsWith('image/')) {
+                                    setError('Seules les images sont acceptées');
+                                    return;
+                                }
+
+                                try {
+                                    setUploadingLogo(true);
+                                    setError(null);
+                                    const result = await uploadLogo(file);
+                                    // Mettre à jour l'entreprise avec le logo
+                                    setEntreprise((prev: any) => ({
+                                        ...prev,
+                                        logo: result.logo
+                                    }));
+                                    // Rafraîchir les données pour être sûr
+                                    await fetchData();
+                                    setSuccess('Logo mis à jour avec succès !');
+                                    setTimeout(() => setSuccess(null), 5000);
+                                } catch (err: any) {
+                                    console.error('Error uploading logo:', err);
+                                    setError(err.response?.data?.message || 'Erreur lors de l\'upload du logo');
+                                } finally {
+                                    setUploadingLogo(false);
+                                    // Réinitialiser l'input
+                                    e.target.value = '';
+                                }
+                            }}
+                            disabled={uploadingLogo}
+                        />
+                        <label htmlFor="logo-upload">
+                            <IconButton
+                                component="span"
+                                disabled={uploadingLogo}
+                                sx={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    bgcolor: theme.palette.primary.main,
+                                    color: 'white',
+                                    '&:hover': {
+                                        bgcolor: theme.palette.primary.dark
+                                    },
+                                    boxShadow: `0 4px 12px ${alpha('#000', 0.3)}`
+                                }}
+                                size="small"
+                            >
+                                {uploadingLogo ? (
+                                    <CircularProgress size={20} sx={{ color: 'white' }} />
+                                ) : (
+                                    <PhotoCamera fontSize="small" />
+                                )}
+                            </IconButton>
+                        </label>
+                    </Box>
 
                     <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
                         <Typography variant="h3" fontWeight={800} gutterBottom>

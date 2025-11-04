@@ -3,6 +3,12 @@ const mongoose = require('mongoose');
 const entrepriseSchema = new mongoose.Schema({
   // 1. Indicateurs d'Identification et Structure de l'Entreprise
   identification: {
+    codeEntreprise: {
+      type: String,
+      trim: true,
+      maxlength: [50, 'Le code entreprise ne peut pas dépasser 50 caractères'],
+      description: 'Code court ou identifiant unique de l\'entreprise (ex: ENT1)'
+    },
     nomEntreprise: {
       type: String,
       required: [true, 'Le nom de l\'entreprise est requis'],
@@ -37,7 +43,7 @@ const entrepriseSchema = new mongoose.Schema({
       type: String,
       required: [true, 'Le secteur d\'activité est requis'],
       enum: [
-        'Primaire', 'Secondaire', 'Tertiaire'
+        'Primaire', 'Secondaire', 'Tertiaire', 'Informatique', 'BTP', 'Commerce'
       ]
     },
     sousSecteur: {
@@ -59,8 +65,14 @@ const entrepriseSchema = new mongoose.Schema({
       type: String,
       required: [true, 'La forme juridique est requise'],
       enum: [
-        'SARL', 'SA', 'EI', 'SUARL', 'SARLU', 'SNC', 'SCS', 'SAS', 'Autres'
+        'SARL', 'SA', 'EI', 'SUARL', 'SARLU', 'SNC', 'SCS', 'SAS', 'EURL', 'Autres'
       ]
+    },
+    typeEntreprise: {
+      type: String,
+      trim: true,
+      maxlength: [50, 'Le type d\'entreprise ne peut pas dépasser 50 caractères'],
+      description: 'Type d\'entreprise (peut être différent de la forme juridique)'
     },
     numeroContribuable: {
       type: String,
@@ -68,6 +80,24 @@ const entrepriseSchema = new mongoose.Schema({
       trim: true,
       unique: true,
       match: [/^[A-Z0-9]+$/, 'Le numéro de contribuable doit être alphanumérique']
+    },
+    siret: {
+      type: String,
+      trim: true,
+      maxlength: [14, 'Le SIRET doit contenir 14 caractères'],
+      description: 'Numéro SIRET de l\'entreprise'
+    },
+    codeAPE: {
+      type: String,
+      trim: true,
+      maxlength: [10, 'Le code APE ne peut pas dépasser 10 caractères'],
+      description: 'Code APE (Activité Principale Exercée)'
+    },
+    tvaIntracommunautaire: {
+      type: String,
+      trim: true,
+      maxlength: [20, 'Le numéro TVA ne peut pas dépasser 20 caractères'],
+      description: 'Numéro de TVA intracommunautaire'
     }
   },
 
@@ -226,7 +256,14 @@ const entrepriseSchema = new mongoose.Schema({
     siteWeb: {
       type: String,
       trim: true,
-      match: [/^https?:\/\/.+/, 'Veuillez entrer une URL valide']
+      validate: {
+        validator: function(v) {
+          if (!v || v === '') return true;
+          // Accepte les URLs avec ou sans http/https
+          return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v) || /^www\..+/.test(v);
+        },
+        message: 'Veuillez entrer une URL valide'
+      }
     },
     adresse: {
       rue: {
@@ -250,6 +287,232 @@ const entrepriseSchema = new mongoose.Schema({
         maxlength: [50, 'Le pays ne peut pas dépasser 50 caractères'],
         default: 'Cameroun'
       }
+    }
+  },
+
+  // Notes et métadonnées additionnelles
+  notes: {
+    type: String,
+    trim: true,
+    maxlength: [5000, 'Les notes ne peuvent pas dépasser 5000 caractères']
+  },
+
+  // Informations CRM
+  crm: {
+    contactPrincipal: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Le nom du contact principal ne peut pas dépasser 200 caractères']
+    },
+    idContactPrincipal: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    dateDernierContact: {
+      type: Date
+    },
+    prochainContact: {
+      type: Date
+    },
+    sourceAcquisition: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'La source d\'acquisition ne peut pas dépasser 100 caractères'],
+      enum: ['Web', 'Recommandation', 'Salon', 'Publicité', 'Autres', null]
+    },
+    campagneMarketing: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'La campagne marketing ne peut pas dépasser 200 caractères']
+    },
+    priorite: {
+      type: String,
+      enum: ['Haute', 'Moyenne', 'Basse', null]
+    },
+    etatProspect: {
+      type: String,
+      enum: ['Qualifié', 'Nouveau', 'En négociation', 'Client', 'Ancien client', null]
+    },
+    dateConversionClient: {
+      type: Date
+    },
+    dateResiliationClient: {
+      type: Date
+    },
+    raisonResiliation: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'La raison de résiliation ne peut pas dépasser 500 caractères']
+    },
+    utilisateurResponsable: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Le nom de l\'utilisateur responsable ne peut pas dépasser 200 caractères']
+    },
+    idUtilisateurResponsable: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  },
+
+  // Informations de contrat
+  contrat: {
+    dateDebutContrat: {
+      type: Date
+    },
+    dateFinContrat: {
+      type: Date
+    },
+    montantContrat: {
+      type: Number,
+      min: [0, 'Le montant du contrat ne peut pas être négatif']
+    },
+    termesPaiement: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'Les termes de paiement ne peuvent pas dépasser 100 caractères'],
+      enum: ['Net 30', 'Net 60', 'Net 90', 'Comptant', 'Autres', null]
+    },
+    frequenceFacturation: {
+      type: String,
+      enum: ['Mensuel', 'Trimestriel', 'Semestriel', 'Annuel', 'Unique', null]
+    },
+    produitsServicesAchetes: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'La description des produits/services ne peut pas dépasser 1000 caractères']
+    },
+    licencesLogiciel: {
+      type: String,
+      enum: ['Oui', 'Non', null]
+    },
+    nombreLicences: {
+      type: Number,
+      min: [0, 'Le nombre de licences ne peut pas être négatif']
+    },
+    dateExpirationLicence: {
+      type: Date
+    }
+  },
+
+  // Informations de support
+  support: {
+    supportTechnique: {
+      type: String,
+      enum: ['Oui', 'Non', null]
+    },
+    niveauSupport: {
+      type: String,
+      enum: ['Basique', 'Standard', 'Premium', 'Entreprise', null]
+    },
+    dateDebutSupport: {
+      type: Date
+    },
+    dateFinSupport: {
+      type: Date
+    },
+    feedbackClient: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Le feedback client ne peut pas dépasser 2000 caractères']
+    },
+    scoreSatisfaction: {
+      type: Number,
+      min: [0, 'Le score de satisfaction doit être entre 0 et 10'],
+      max: [10, 'Le score de satisfaction doit être entre 0 et 10']
+    },
+    dateDernierFeedback: {
+      type: Date
+    }
+  },
+
+  // Informations financières additionnelles
+  finances: {
+    historiqueCommandes: {
+      type: String,
+      trim: true,
+      maxlength: [5000, 'L\'historique des commandes ne peut pas dépasser 5000 caractères']
+    },
+    montantTotalCommandes: {
+      type: Number,
+      min: [0, 'Le montant total des commandes ne peut pas être négatif']
+    },
+    nombreCommandes: {
+      type: Number,
+      min: [0, 'Le nombre de commandes ne peut pas être négatif']
+    },
+    dateDerniereCommande: {
+      type: Date
+    },
+    prochaineCommandePrevue: {
+      type: Date
+    },
+    budgetAnnuel: {
+      type: Number,
+      min: [0, 'Le budget annuel ne peut pas être négatif']
+    }
+  },
+
+  // Informations stratégiques
+  strategie: {
+    objectifsClient: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Les objectifs client ne peuvent pas dépasser 2000 caractères']
+    },
+    defisClient: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Les défis client ne peuvent pas dépasser 2000 caractères']
+    },
+    concurrentsPrincipaux: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Les concurrents principaux ne peuvent pas dépasser 1000 caractères']
+    },
+    partenairesStrategiques: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Les partenaires stratégiques ne peuvent pas dépasser 1000 caractères']
+    }
+  },
+
+  // Informations diverses
+  divers: {
+    documentsLies: {
+      type: [String],
+      description: 'Liste des URLs ou chemins vers les documents liés'
+    },
+    liensUtiles: {
+      type: [String],
+      description: 'Liste des liens utiles'
+    },
+    tags: {
+      type: [String],
+      description: 'Tags pour catégoriser l\'entreprise'
+    }
+  },
+
+  // Champs personnalisés (1 à 10)
+  champsPersonnalises: {
+    champ1: { type: String, trim: true, maxlength: [500] },
+    champ2: { type: String, trim: true, maxlength: [500] },
+    champ3: { type: String, trim: true, maxlength: [500] },
+    champ4: { type: String, trim: true, maxlength: [500] },
+    champ5: { type: String, trim: true, maxlength: [500] },
+    champ6: { type: String, trim: true, maxlength: [500] },
+    champ7: { type: String, trim: true, maxlength: [500] },
+    champ8: { type: String, trim: true, maxlength: [500] },
+    champ9: { type: String, trim: true, maxlength: [500] },
+    champ10: { type: String, trim: true, maxlength: [500] }
+  },
+
+  // Données annuelles (2021-2050)
+  donneesAnnuelles: {
+    type: Map,
+    of: {
+      type: Number,
+      description: 'Valeurs numériques pour chaque année (2021-2050)'
     }
   },
 
@@ -293,6 +556,12 @@ const entrepriseSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [1000, 'La description ne peut pas dépasser 1000 caractères']
+  },
+  logo: {
+    type: String,
+    trim: true,
+    default: null,
+    description: 'URL du logo de l\'entreprise'
   }
 }, {
   timestamps: true,

@@ -1,0 +1,38 @@
+<svg width="200" height="120" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo API - Agence de Promotion des Investissements -->
+  <!-- 
+    INSTRUCTIONS: Remplacez ce contenu par le logo officiel de l'API.
+    Le logo doit contenir:
+    - Les lettres "API" en bleu foncé
+    - La carte du Cameroun dans la lettre A
+    - L'élément ondulé avec les couleurs du drapeau camerounais (vert, rouge avec étoile jaune, jaune)
+    - Le texte "AGENCE DE PROMOTION DES INVESTISSEMENTS"
+    - Le texte "CAMEROUN"
+    
+    Pour ajouter votre logo:
+    1. Ouvrez votre fichier logo officiel (SVG, PNG, etc.)
+    2. Si c'est un SVG, copiez le contenu dans ce fichier
+    3. Si c'est un PNG/JPG, convertissez-le en SVG ou utilisez une balise <image>:
+       <image href="votre-logo.png" width="200" height="120" />
+  -->
+  
+  <!-- Placeholder temporaire - Logo API -->
+  <rect width="200" height="120" fill="#ffffff"/>
+  
+  <!-- Texte API (placeholder) -->
+  <text x="100" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#1A3B8A" text-anchor="middle">
+    API
+  </text>
+  
+  <!-- Ligne ondulée (placeholder) -->
+  <path d="M 20 70 Q 50 60, 80 70 T 140 70" stroke="#1A3B8A" stroke-width="3" fill="none"/>
+  
+  <!-- Texte (placeholder) -->
+  <text x="100" y="90" font-family="Arial, sans-serif" font-size="10" fill="#1A3B8A" text-anchor="middle">
+    AGENCE DE PROMOTION DES INVESTISSEMENTS
+  </text>
+  <text x="100" y="105" font-family="Arial, sans-serif" font-size="12" fill="#1A3B8A" text-anchor="middle" font-weight="bold">
+    CAMEROUN
+  </text>
+</svg>
+
